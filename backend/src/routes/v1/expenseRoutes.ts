@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{listExpenses,createExpense,deleteExpense}from'../../controllers/expenseController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/',listExpenses);r.post('/',createExpense);r.delete('/:id',deleteExpense);export default r;
