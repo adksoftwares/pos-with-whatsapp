@@ -9,6 +9,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireBusinessAccess());
 
+router.get('/stock-value', productController.getStockValue);
 router.get('/', validate(listQuerySchema), productController.getProducts);
 router.post('/', validate(createProductSchema), productController.createProduct);
 router.get('/barcode/:barcode', productController.getProductByBarcode);
