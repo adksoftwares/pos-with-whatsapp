@@ -187,10 +187,10 @@ export const OrderDetails: React.FC = () => {
             <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <RefreshCw size={16} /> Returns & Voids
             </h3>
-            <p className="text-xs text-gray-500 mb-4">Refund workflows are not available in this phase.</p>
+            <p className="text-xs text-gray-500 mb-4">Full-sale refund and inventory return workflow.</p>
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" className="flex-1" disabled>
-                Refund
+              <Button variant="secondary" size="sm" className="flex-1" onClick={() => navigate(`/returns?order=${encodeURIComponent(order.orderNumber || order.id)}`)}>
+                Refund / Return
               </Button>
               <Button variant="danger" size="sm" className="flex-1" disabled>
                 Void Sale
