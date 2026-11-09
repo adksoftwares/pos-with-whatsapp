@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{list,create,update,remove}from'../../controllers/supplierController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/',list);r.post('/',create);r.patch('/:id',update);r.delete('/:id',remove);export default r;
