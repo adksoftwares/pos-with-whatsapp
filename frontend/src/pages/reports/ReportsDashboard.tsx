@@ -37,20 +37,20 @@ const REPORT_CATEGORIES = [
     title: '2. Inventory & Products',
     description: 'Monitor stock levels, values, and product ledger',
     reports: [
-      { id: 'stock_value', title: 'Current Stock Value', desc: 'Total value of existing inventory', icon: Wallet, component: ComingSoon },
+      { id: 'stock_value', title: 'Current Stock Value', desc: 'Review products and current inventory value', icon: Wallet, component: null, link: '/products' },
       { id: 'product_list', title: 'Complete Product List', desc: 'All products and current stock', icon: List, component: null, link: '/products' },
       { id: 'out_of_stock', title: 'Out-of-Stock Products', desc: 'Products with zero or negative stock', icon: AlertTriangle, component: null, link: '/products?filter=out_of_stock' },
-      { id: 'expiring_products', title: 'Expiring Products', desc: 'Products nearing their expiry date', icon: Clock, component: ComingSoon },
-      { id: 'stock_ledger', title: 'Stock Movement / Ledger', desc: 'History of stock additions and sales', icon: Activity, component: ComingSoon },
+      { id: 'expiring_products', title: 'Expiring Products', desc: 'Review product expiry dates in the product register', icon: Clock, component: null, link: '/products?filter=expiring' },
+      { id: 'stock_ledger', title: 'Stock Movement / Ledger', desc: 'History of stock additions, receipts and sales', icon: Activity, component: null, link: '/inventory-ledger' },
     ]
   },
   {
     title: '3. Purchases & Suppliers',
     description: 'Track purchase orders and supplier balances',
     reports: [
-      { id: 'purchase_summary', title: 'Purchase Summary', desc: 'History of supplier purchases', icon: Truck, component: ComingSoon },
-      { id: 'outstanding_payables', title: 'Outstanding Payables', desc: 'Pending balances to be paid', icon: FileText, component: ComingSoon },
-      { id: 'supplier_balances', title: 'Supplier Balances', desc: 'Overall balances by supplier', icon: Building2, component: ComingSoon },
+      { id: 'purchase_summary', title: 'Purchase Summary', desc: 'Review supplier purchase receipts', icon: Truck, component: null, link: '/purchases' },
+      { id: 'outstanding_payables', title: 'Outstanding Payables', desc: 'Supplier contacts and purchasing records', icon: FileText, component: null, link: '/suppliers' },
+      { id: 'supplier_balances', title: 'Supplier Directory', desc: 'Manage supplier contacts and records', icon: Building2, component: null, link: '/suppliers' },
     ]
   }
 ];
