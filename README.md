@@ -120,3 +120,24 @@ Ensure a reverse proxy (e.g., Nginx) is configured to handle HTTPS and serve the
 ## Maintenance
 - **Health Check**: `GET /api/v1/health`
 - Automated database backups should be managed externally via your deployment provider.
+
+
+## Sri Lanka shop operations roadmap
+
+### Added in this completion pass
+- **Customer directory**: tenant-isolated customer create/list/search/update/delete APIs and UI; stores phone, email, address, notes, loyalty points and lifetime spend. Customer can be linked to orders in the database.
+- **Expense tracking**: tenant-isolated expense create/list/delete APIs and UI; LKR-friendly amount entry, expense category, payment method, date and reference; audit trail for creation and management-only removal.
+
+### Sri Lanka-specific next modules
+- Supplier directory and purchase receiving with stock ledger entries
+- Customer credit / receivables and partial settlements
+- Sales returns, exchanges and refund workflow
+- Cashier shifts, opening float, cash drawer closing and variance
+- Batch/expiry management, stock transfers and reorder suggestions
+- Sinhala + Tamil + English complete interface; locale-aware LKR, date and number formats
+- Configurable VAT/tax invoice fields (accountant-controlled rates and registration data)
+- LankaQR / PayHere / bank transfer adapter layer (credentials configured by each merchant)
+- WhatsApp order confirmations, low-stock alerts and customer statements
+- Scheduled encrypted backups, CSV/Excel exports and restore guide
+
+**Database change:** apply the updated Prisma schema to the PostgreSQL database before deploying the new Customers and Expenses endpoints. This pass intentionally did not run build or tests, as requested.
