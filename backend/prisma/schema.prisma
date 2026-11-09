@@ -52,6 +52,8 @@ model Business {
   printerProfiles       PrinterProfile[]
   products              Product[]
   subscriptions         Subscription[]
+  customers             Customer[]
+  expenses              Expense[]
 }
 
 model BusinessMembership {
@@ -150,11 +152,14 @@ model Order {
   cashier             User          @relation("Cashier", fields: [cashierId], references: [id])
   items               OrderItem[]
   payments            Payment[]
+  customerId           String?
+  customer             Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@unique([businessId, orderNumber])
   @@index([businessId, createdAt])
   @@index([businessId, orderNumber])
   @@index([cashierId])
+  @@index([customerId])
 }
 
 model OrderItem {
@@ -366,4 +371,39 @@ enum SubscriptionEventType {
   PRO_SUSPENDED
   PLAN_CHANGED
   MANUAL_EXTENSION
+}
+
+model Customer {
+ id String @id @default(uuid())
+ businessId String
+ name String
+ phone String?
+ email String?
+ address String?
+ birthday DateTime?
+ notes String?
+ loyaltyPoints Int @default(0)
+ totalSpent Decimal @default(0) @db.Decimal(12,2)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ business Business @relation(fields:[businessId],references:[id],onDelete:Cascade)
+ orders Order[]
+ @@index([businessId,name])
+ @@index([businessId,phone])
+}
+model Expense {
+ id String @id @default(uuid())
+ businessId String
+ createdById String
+ category String
+ description String
+ amount Decimal @db.Decimal(12,2)
+ paymentMethod String @default("CASH")
+ expenseDate DateTime @default(now())
+ reference String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ business Business @relation(fields:[businessId],references:[id],onDelete:Cascade)
+ @@index([businessId,expenseDate])
+ @@index([businessId,category])
 }
