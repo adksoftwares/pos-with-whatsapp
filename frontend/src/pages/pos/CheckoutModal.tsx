@@ -32,6 +32,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [amountTendered, setAmountTendered] = useState<string>('');
   const [reference, setReference] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerId, setCustomerId] = useState('');
   
   // Idempotency key to prevent double charging
   const [idempotencyKey] = useState(() => Math.random().toString(36).substring(2) + Date.now().toString(36));
@@ -42,6 +44,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setStep('VALIDATING');
+      setCustomerId('');
+      if(isOnline) apiClient.get('/customers',{params:{limit:100}}).then((r:any)=>setCustomers(r.data||[])).catch(()=>setCustomers([]));
       validateCart();
     }
   }, [isOpen]);
@@ -123,7 +127,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         orderDiscountAmount: orderDiscount,
         paymentMethod,
         amountTendered: paymentMethod === 'CASH' ? tendered : grandTotal,
-        referenceNumber: reference || undefined
+        referenceNumber: reference || undefined,
+        customerId: customerId || undefined
       };
 
       if (isOnline) {
