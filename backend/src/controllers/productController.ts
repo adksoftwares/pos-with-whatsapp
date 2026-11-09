@@ -113,7 +113,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const businessId = req.businessMembership.businessId;
-    const { search, status, categoryId, stockStatus, updatedAfter } = req.query as any;
+    const { search, status, categoryId, stockStatus, updatedAfter, expiryStatus } = req.query as any;
     const page = (req.query.page && req.query.page !== 'undefined') ? Number(req.query.page) : 1;
     const limit = (req.query.limit && req.query.limit !== 'undefined') ? Number(req.query.limit) : 
                   (req.query.pageSize && req.query.pageSize !== 'undefined') ? Number(req.query.pageSize) : 50;
@@ -138,6 +138,8 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
       ];
     }
 
+    if (expiryStatus === 'EXPIRING') where.expiryDate = { gte: new Date(), lte: new Date(Date.now() + 30 * 86400000) };
+    if (expiryStatus === 'EXPIRED') where.expiryDate = { lt: new Date() };
     if (stockStatus) {
       if (stockStatus === 'OUT_OF_STOCK') {
         where.stockQuantity = { lte: 0 };
@@ -311,3 +313,5 @@ export const adjustStock = async (req:Request,res:Response,next:NextFunction)=>{
   return ApiResponse.success(res,updated,'Stock adjusted');
  }catch(e){next(e)}
 };
+
+export const getStockValue = async(req:Request,res:Response,next:NextFunction)=>{try{const products=await prisma.product.findMany({where:{businessId:req.businessMembership.businessId,status:'ACTIVE'},select:{stockQuantity:true,costPrice:true,sellingPrice:true}});const result=products.reduce((a,p)=>{const q=Number(p.stockQuantity||0);a.units+=q;a.costValue+=q*Number(p.costPrice||0);a.retailValue+=q*Number(p.sellingPrice||0);return a},{units:0,costValue:0,retailValue:0});return ApiResponse.success(res,{...result,productCount:products.length,currency:'LKR'})}catch(e){next(e)}};
