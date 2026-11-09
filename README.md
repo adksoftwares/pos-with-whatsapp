@@ -191,3 +191,28 @@ The schema additions are in `backend/prisma/schema.prisma`. An additive SQL scri
 
 ### Checkout/customer workflow
 Checkout now offers a customer selector for online sales. A selected customer is validated against the active business and attached to the order; their lifetime-spend total is incremented atomically with the sale. Walk-in sales remain supported. Offline checkout remains available without requiring customer selection.
+
+
+## Sri Lanka retail completion modules (current code)
+
+- **Customers:** customer records, contact/notes, edit/delete/search, checkout attachment, lifetime spend and purchase reward points. Full returns reverse customer totals and earned points.
+- **Expenses:** tenant-scoped LKR expense records with categories, date, payment method, reference, summary and audit events.
+- **Suppliers:** management-only create/edit/delete, contact records and notes.
+- **Purchases:** multi-line supplier stock receiving, unit cost updates, product stock increments, inventory ledger entries and purchase audit event.
+- **Cashier shifts:** opening float, active shift, counted closing cash and expected cash/variance.
+- **Sales returns:** full-order return, optional restock, payment/order refund state and inventory movements. Partial line returns are not included.
+- **Inventory ledger:** chronological stock movement list; product register shows stock cost and retail valuation, with expired/expiring-in-30-days filters.
+- **WhatsApp:** share links plus optional Cloud API text receipt sending. Configure Meta credentials in backend environment; no secret is committed.
+- **Language foundation:** persisted English/Tamil/Sinhala preference and base dictionary; this is not yet full translation of every screen.
+- **Sri Lanka defaults:** LKR currency, Asia/Colombo timezone, local currency formatting and +94 contact guidance.
+
+### Apply database update
+Back up the PostgreSQL database first. The additive schema and SQL are in `backend/prisma/schema.prisma` and `backend/prisma/migrations/20261109_retail_completion/migration.sql`. Apply the SQL once to an existing database (or use your normal Prisma deployment workflow). New pages/routes require this schema to be present.
+
+### Known items still requiring real integration/configuration
+- Partial refunds/returns and supplier/customer balances require additional ledger models and workflows.
+- Tax/VAT invoice rates and legal fields need accountant-confirmed settings.
+- LankaQR/PayHere requires merchant credentials, callbacks and reconciliation.
+- WhatsApp API templates/media require Meta business configuration and opt-in management.
+- Complete translation of every UI string, backup restore drills, device/browser acceptance, and production monitoring remain deployment work.
+- As requested for this code pass, no build, run, or tests were executed.
