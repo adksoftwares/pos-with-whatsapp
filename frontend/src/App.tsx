@@ -15,6 +15,8 @@ import { ReportsDashboard } from './pages/reports/ReportsDashboard';
 import { SyncDashboard } from './pages/SyncDashboard';
 import { SubscriptionPage } from './pages/settings/Subscription';
 import { AdminSubscriptions } from './pages/admin/AdminSubscriptions';
+import { Customers } from './pages/Customers';
+import { Expenses } from './pages/Expenses';
 
 function App() {
   return (
@@ -33,8 +35,9 @@ function App() {
             <Route path="sales/:id" element={<OrderDetails />} />
             <Route path="pos" element={<POS />} />
             <Route path="products" element={<ProductList />} />
-            <Route path="customers" element={<GenericPlaceholder title="Customers" description="Manage customer profiles, purchase history, and loyalty." />} />
+            <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<ReportsDashboard />} />
+            <Route path="expenses" element={<Expenses />} />
             <Route path="settings" element={<Settings />} />
             <Route path="settings/printers" element={<PrintersSettings />} />
             <Route path="settings/subscription" element={<SubscriptionPage />} />
