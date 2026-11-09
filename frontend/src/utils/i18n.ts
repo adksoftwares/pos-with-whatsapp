@@ -1,31 +1,11 @@
-// Foundation for future i18n support
 export type Language = 'en' | 'ta' | 'si';
-
-type Dictionary = {
-  [key in Language]?: Record<string, string>;
+export type TranslationKey = 'dashboard'|'newBill'|'sales'|'products'|'customers'|'expenses'|'suppliers'|'purchases'|'returns'|'shifts'|'settings'|'reports'|'searchPlaceholder'|'total'|'subtotal'|'discount'|'pay'|'cancel'|'save'|'addCustomer'|'recordExpense'|'stockReceived'|'cashierShift'|'language';
+const dictionary:Record<Language,Record<TranslationKey,string>>={
+ en:{dashboard:'Dashboard',newBill:'New Bill',sales:'Sales',products:'Products',customers:'Customers',expenses:'Expenses',suppliers:'Suppliers',purchases:'Purchases',returns:'Returns',shifts:'Cashier Shift',settings:'Settings',reports:'Reports',searchPlaceholder:'Search…',total:'Total',subtotal:'Subtotal',discount:'Discount',pay:'Pay',cancel:'Cancel',save:'Save',addCustomer:'Add customer',recordExpense:'Record expense',stockReceived:'Stock received',cashierShift:'Cashier shift',language:'Language'},
+ ta:{dashboard:'முகப்பு',newBill:'புதிய பில்',sales:'விற்பனை',products:'பொருட்கள்',customers:'வாடிக்கையாளர்கள்',expenses:'செலவுகள்',suppliers:'வழங்குநர்கள்',purchases:'கொள்முதல்',returns:'திருப்பல்கள்',shifts:'காசாளர் ஷிப்ட்',settings:'அமைப்புகள்',reports:'அறிக்கைகள்',searchPlaceholder:'தேடுக…',total:'மொத்தம்',subtotal:'உபமொத்தம்',discount:'தள்ளுபடி',pay:'செலுத்து',cancel:'ரத்து',save:'சேமி',addCustomer:'வாடிக்கையாளரைச் சேர்',recordExpense:'செலவை பதிவு செய்',stockReceived:'சரக்கு பெறப்பட்டது',cashierShift:'காசாளர் ஷிப்ட்',language:'மொழி'},
+ si:{dashboard:'උපකරණ පුවරුව',newBill:'නව බිල්පත',sales:'විකුණුම්',products:'භාණ්ඩ',customers:'පාරිභෝගිකයන්',expenses:'වියදම්',suppliers:'සැපයුම්කරුවන්',purchases:'මිලදී ගැනීම්',returns:'ආපසු ලබාදීම්',shifts:'කැෂියර් මුරය',settings:'සැකසුම්',reports:'වාර්තා',searchPlaceholder:'සොයන්න…',total:'එකතුව',subtotal:'උප එකතුව',discount:'වට්ටම',pay:'ගෙවන්න',cancel:'අවලංගු',save:'සුරකින්න',addCustomer:'පාරිභෝගිකයා එක් කරන්න',recordExpense:'වියදම සටහන් කරන්න',stockReceived:'තොග ලැබුණි',cashierShift:'කැෂියර් මුරය',language:'භාෂාව'}
 };
-
-// Placeholder dictionary architecture
-const dictionary: Dictionary = {
-  en: {
-    dashboard: 'Dashboard',
-    newBill: 'New Bill',
-    sales: 'Sales',
-    products: 'Products',
-    customers: 'Customers',
-    settings: 'Settings',
-    reports: 'Reports',
-    searchPlaceholder: 'Search...',
-    total: 'Total',
-    subtotal: 'Subtotal',
-    discount: 'Discount',
-    pay: 'Pay',
-    cancel: 'Cancel',
-    save: 'Save',
-  }
-};
-
-export const t = (key: keyof typeof dictionary.en, lang: Language = 'en'): string => {
-  const translations = dictionary[lang];
-  return (translations && translations[key]) || dictionary.en?.[key] || key;
-};
+export const getLanguage=():Language=>{try{const v=localStorage.getItem('retail-language');return v==='ta'||v==='si'?v:'en'}catch{return'en'}};
+export const setLanguage=(lang:Language)=>{try{localStorage.setItem('retail-language',lang)}catch{}};
+export const t=(key:TranslationKey,lang:Language=getLanguage()):string=>dictionary[lang][key]||dictionary.en[key]||key;
+export const supportedLanguages:{value:Language;label:string}[]=[{value:'en',label:'English'},{value:'ta',label:'தமிழ்'},{value:'si',label:'සිංහල'}];
