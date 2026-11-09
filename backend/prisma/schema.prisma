@@ -1,0 +1,369 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String                 @id @default(uuid())
+  email                  String                 @unique
+  passwordHash           String
+  name                   String
+  isSuperAdmin           Boolean                @default(false)
+  status                 UserStatus             @default(ACTIVE)
+  lastLoginAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  auditLogs              AuditLog[]
+  ownedBusinesses        Business[]             @relation("BusinessOwner")
+  memberships            BusinessMembership[]
+  inventoryTransactions  InventoryTransaction[] @relation("CreatedBy")
+  orders                 Order[]                @relation("Cashier")
+  payments               Payment[]              @relation("CreatedBy")
+  activatedSubscriptions Subscription[]         @relation("ActivatedBy")
+  subscriptionEvents     SubscriptionEvent[]    @relation("EventPerformedBy")
+}
+
+model Business {
+  id                    String                 @id @default(uuid())
+  name                  String
+  businessType          String?
+  phone                 String?
+  email                 String?
+  address               String?
+  city                  String?
+  country               String                 @default("Sri Lanka")
+  currency              String                 @default("LKR")
+  timezone              String                 @default("Asia/Colombo")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  ownerId               String
+  auditLogs             AuditLog[]
+  owner                 User                   @relation("BusinessOwner", fields: [ownerId], references: [id])
+  memberships           BusinessMembership[]
+  settings              BusinessSettings?
+  categories            Category[]
+  inventoryTransactions InventoryTransaction[]
+  orders                Order[]
+  payments              Payment[]
+  printerProfiles       PrinterProfile[]
+  products              Product[]
+  subscriptions         Subscription[]
+}
+
+model BusinessMembership {
+  id         String   @id @default(uuid())
+  userId     String
+  businessId String
+  role       Role     @default(STAFF)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  businessId  String
+  name        String
+  description String?
+  status      Status    @default(ACTIVE)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products    Product[]
+
+  @@unique([businessId, name])
+}
+
+model Product {
+  id                    String                 @id @default(uuid())
+  businessId            String
+  clientTransactionId   String?                @unique
+  categoryId            String?
+  name                  String
+  sku                   String?
+  barcode               String?
+  description           String?
+  sellingPrice          Decimal                @db.Decimal(10, 2)
+  costPrice             Decimal?               @db.Decimal(10, 2)
+  stockQuantity         Decimal                @default(0) @db.Decimal(10, 2)
+  lowStockThreshold     Decimal                @default(0) @db.Decimal(10, 2)
+  unit                  String                 @default("piece")
+  status                Status                 @default(ACTIVE)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  company               String?
+  discountAllowed       Decimal?               @default(0) @db.Decimal(5, 2)
+  discountReceived      Decimal?               @default(0) @db.Decimal(5, 2)
+  expiryDate            DateTime?
+  mrpPrice              Decimal?               @db.Decimal(10, 2)
+  unitSize              Decimal?               @db.Decimal(10, 2)
+  inventoryTransactions InventoryTransaction[]
+  orderItems            OrderItem[]
+  business              Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category              Category?              @relation(fields: [categoryId], references: [id])
+
+  @@unique([businessId, sku])
+  @@unique([businessId, barcode])
+}
+
+model InventoryTransaction {
+  id            String          @id @default(uuid())
+  businessId    String
+  productId     String
+  type          TransactionType
+  quantity      Decimal         @db.Decimal(10, 2)
+  referenceType String?
+  referenceId   String?
+  note          String?
+  createdById   String
+  createdAt     DateTime        @default(now())
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy     User            @relation("CreatedBy", fields: [createdById], references: [id])
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                  String        @id @default(uuid())
+  businessId          String
+  clientTransactionId String?       @unique
+  orderNumber         String
+  status              OrderStatus   @default(COMPLETED)
+  subtotal            Decimal       @db.Decimal(10, 2)
+  discountTotal       Decimal       @default(0) @db.Decimal(10, 2)
+  taxTotal            Decimal       @default(0) @db.Decimal(10, 2)
+  roundingAdjustment  Decimal       @default(0) @db.Decimal(10, 2)
+  grandTotal          Decimal       @db.Decimal(10, 2)
+  currency            String        @default("LKR")
+  paymentStatus       PaymentStatus @default(PENDING)
+  cashierId           String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  completedAt         DateTime?
+  business            Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  cashier             User          @relation("Cashier", fields: [cashierId], references: [id])
+  items               OrderItem[]
+  payments            Payment[]
+
+  @@unique([businessId, orderNumber])
+  @@index([businessId, createdAt])
+  @@index([businessId, orderNumber])
+  @@index([cashierId])
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  productId    String?
+  productName  String
+  sku          String?
+  barcode      String?
+  company      String?
+  unit         String
+  quantity     Decimal  @db.Decimal(10, 2)
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  costPrice    Decimal? @db.Decimal(10, 2)
+  lineDiscount Decimal  @default(0) @db.Decimal(10, 2)
+  tax          Decimal  @default(0) @db.Decimal(10, 2)
+  lineTotal    Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product? @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  businessId      String
+  orderId         String
+  method          PaymentMethod
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PAID)
+  referenceNumber String?
+  cashTendered    Decimal?      @db.Decimal(10, 2)
+  changeGiven     Decimal?      @db.Decimal(10, 2)
+  createdById     String
+  receivedAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("CreatedBy", fields: [createdById], references: [id])
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  businessId String
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PrinterProfile {
+  id             String   @id @default(uuid())
+  businessId     String
+  name           String
+  paperWidth     String   @default("58mm")
+  connectionType String   @default("BROWSER")
+  vendor         String?
+  model          String?
+  enabled        Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model BusinessSettings {
+  id                      String   @id @default(uuid())
+  businessId              String   @unique
+  receiptPaperWidth       String   @default("58mm")
+  receiptShowLogo         Boolean  @default(true)
+  receiptShowPhone        Boolean  @default(true)
+  receiptShowEmail        Boolean  @default(false)
+  receiptShowAddress      Boolean  @default(true)
+  receiptShowCustomer     Boolean  @default(true)
+  receiptShowSku          Boolean  @default(false)
+  receiptFooterMessage    String?
+  receiptThankYouMessage  String   @default("Thank you for your purchase!")
+  posAutoPrint            Boolean  @default(true)
+  posConfirmClearCart     Boolean  @default(true)
+  whatsappEnabled         Boolean  @default(true)
+  whatsappMessageTemplate String   @default("Hello {business_name} customer, your bill for {date} is {total}. Thank you!")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  business                Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  code          String         @unique
+  name          String
+  description   String?
+  price         Decimal        @db.Decimal(10, 2)
+  currency      String         @default("LKR")
+  billingDays   Int?
+  productLimit  Int
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String              @id @default(uuid())
+  businessId         String
+  planId             String
+  status             SubscriptionStatus  @default(ACTIVE)
+  startsAt           DateTime
+  expiresAt          DateTime?
+  activatedAt        DateTime?
+  activatedById      String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  activatedBy        User?               @relation("ActivatedBy", fields: [activatedById], references: [id])
+  business           Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan               Plan                @relation(fields: [planId], references: [id])
+  events             SubscriptionEvent[]
+
+  @@index([businessId, status])
+  @@index([status, expiresAt])
+  @@index([planId])
+}
+
+model SubscriptionEvent {
+  id             String                @id @default(uuid())
+  subscriptionId String
+  businessId     String
+  eventType      SubscriptionEventType
+  performedById  String?
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime              @default(now())
+  performedBy    User?                 @relation("EventPerformedBy", fields: [performedById], references: [id])
+  subscription   Subscription          @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([subscriptionId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MANAGER
+  CASHIER
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum TransactionType {
+  OPENING
+  SALE
+  PURCHASE
+  RETURN
+  ADJUSTMENT
+  DAMAGE
+  REVERSAL
+}
+
+enum OrderStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  QR
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  VOIDED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum SubscriptionEventType {
+  FREE_ASSIGNED
+  PRO_ACTIVATED
+  PRO_REACTIVATED
+  PRO_EXPIRED
+  PRO_CANCELLED
+  PRO_SUSPENDED
+  PLAN_CHANGED
+  MANUAL_EXTENSION
+}
