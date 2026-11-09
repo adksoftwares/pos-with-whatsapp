@@ -97,6 +97,7 @@ export const previewOrder = async (req: Request, res: Response, next: NextFuncti
     const businessId = req.businessMembership.businessId;
     const { items, orderDiscountAmount } = req.body;
     
+    if (customerId && !(await prisma.customer.findFirst({ where: { id: customerId, businessId } }))) throw ApiError.badRequest('Customer does not belong to this business');
     const validatedOrder = await buildValidatedOrder(businessId, items, orderDiscountAmount);
 
     return ApiResponse.success(res, {
@@ -125,7 +126,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
   try {
     const businessId = req.businessMembership.businessId;
     const cashierId = req.user.id;
-    const { items, orderDiscountAmount, paymentMethod, amountTendered, referenceNumber } = req.body;
+    const { items, orderDiscountAmount, paymentMethod, amountTendered, referenceNumber, customerId } = req.body;
     const idempotencyKey = req.headers['x-idempotency-key'] as string;
 
     if (!idempotencyKey) {
@@ -177,6 +178,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           grandTotal: paymentAmount,
           paymentStatus: 'PAID',
           cashierId,
+          customerId: customerId || null,
           completedAt: new Date()
         }
       });
@@ -245,6 +247,8 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           }
         });
       }
+
+      if (customerId) await tx.customer.update({ where: { id: customerId }, data: { totalSpent: { increment: paymentAmount } } });
 
       // 5. Create Audit Event
       await tx.auditLog.create({
