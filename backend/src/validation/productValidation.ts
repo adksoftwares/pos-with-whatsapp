@@ -76,6 +76,7 @@ export const listQuerySchema = z.object({
     status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
     categoryId: z.string().uuid().optional(),
     stockStatus: z.enum(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK']).optional(),
+    expiryStatus: z.enum(['EXPIRING', 'EXPIRED']).optional(),
     sortBy: z.enum(['name', 'sellingPrice', 'stockQuantity', 'createdAt', 'updatedAt']).optional().default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
   }),
