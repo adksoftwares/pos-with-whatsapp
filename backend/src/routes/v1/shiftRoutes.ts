@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{current,open,close}from'../../controllers/shiftController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/current',current);r.post('/open',open);r.post('/:id/close',close);export default r;
