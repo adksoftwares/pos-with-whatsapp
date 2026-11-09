@@ -95,7 +95,7 @@ const buildValidatedOrder = async (
 export const previewOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const businessId = req.businessMembership.businessId;
-    const { items, orderDiscountAmount } = req.body;
+    const { items, orderDiscountAmount, customerId } = req.body;
     
     if (customerId && !(await prisma.customer.findFirst({ where: { id: customerId, businessId } }))) throw ApiError.badRequest('Customer does not belong to this business');
     const validatedOrder = await buildValidatedOrder(businessId, items, orderDiscountAmount);
@@ -249,7 +249,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
         });
       }
 
-      if (customerId) await tx.customer.update({ where: { id: customerId }, data: { totalSpent: { increment: paymentAmount } } });
+
 
       // Update customer lifetime value and reward points when the sale is linked.
       if (customerId) await tx.customer.update({ where: { id: String(customerId) }, data: { totalSpent: { increment: paymentAmount }, loyaltyPoints: { increment: Math.floor(paymentAmount / 100) } } });

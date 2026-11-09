@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import { POS } from './pages/pos/POS';
-import { GenericPlaceholder } from './pages/GenericPlaceholder';
+
 import { Settings } from './pages/Settings';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
