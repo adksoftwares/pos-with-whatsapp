@@ -12,6 +12,9 @@ import subscriptionRoutes from './subscriptionRoutes';
 import healthRoutes from './healthRoutes';
 import customerRoutes from './customerRoutes';
 import expenseRoutes from './expenseRoutes';
+import supplierRoutes from './supplierRoutes';
+import purchaseRoutes from './purchaseRoutes';
+import shiftRoutes from './shiftRoutes';
 
 const router = Router();
 
@@ -28,5 +31,8 @@ router.use('/subscription', subscriptionRoutes);
 router.use('/health', healthRoutes);
 router.use('/customers', customerRoutes);
 router.use('/expenses', expenseRoutes);
+router.use('/suppliers', supplierRoutes);
+router.use('/purchases', purchaseRoutes);
+router.use('/shifts', shiftRoutes);
 
 export default router;
