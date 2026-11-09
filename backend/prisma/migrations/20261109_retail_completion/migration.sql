@@ -49,3 +49,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SaleReturn_orderId_key" ON "SaleReturn"("orde
 CREATE INDEX IF NOT EXISTS "SaleReturn_businessId_createdAt_idx" ON "SaleReturn"("businessId","createdAt");
 DO $ BEGIN ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $;
 DO $ BEGIN ALTER TABLE "SaleReturn" ADD CONSTRAINT "SaleReturn_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+-- Prevent concurrent duplicate open shifts for one cashier/business.
+CREATE UNIQUE INDEX IF NOT EXISTS "CashShift_one_open_per_cashier_idx" ON "CashShift"("businessId","cashierId") WHERE "status" = 'OPEN';
