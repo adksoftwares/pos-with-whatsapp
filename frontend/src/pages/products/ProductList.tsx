@@ -33,6 +33,8 @@ export const ProductList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [expiryFilter, setExpiryFilter] = useState(new URLSearchParams(window.location.search).get('filter') === 'expiring' ? 'EXPIRING' : '');
+  const [stockValue, setStockValue] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -48,7 +50,7 @@ export const ProductList = () => {
     setIsLoading(true);
     try {
       const res = await apiClient.get('/products', {
-        params: { page, limit: 10, search, status: statusFilter || undefined }
+        params: { page, limit: 10, search, status: statusFilter || undefined, expiryStatus: expiryFilter || undefined }
       });
       setProducts(res.data.products);
       setTotalPages(res.data.pagination.totalPages);
@@ -59,13 +61,15 @@ export const ProductList = () => {
     }
   };
 
+  useEffect(() => { apiClient.get('/products/stock-value').then((r:any)=>setStockValue(r.data)).catch(()=>{}); }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
       fetchProducts();
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, expiryFilter]);
 
   useEffect(() => {
     fetchProducts();
@@ -102,12 +106,13 @@ export const ProductList = () => {
 
   return (
     <div className="space-y-6">
+      {stockValue && <div className="grid grid-cols-1 sm:grid-cols-3 gap-3"><Card><CardContent className="p-4"><p className="text-xs text-gray-500">Stock units</p><b>{Number(stockValue.units).toLocaleString("en-LK")}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-gray-500">Stock cost value</p><b>{formatLKR(stockValue.costValue)}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-gray-500">Retail value</p><b>{formatLKR(stockValue.retailValue)}</b></CardContent></Card></div>}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Products</h2>
           <p className="text-gray-500 text-sm mt-1">Manage your inventory, prices, and stock.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3"><select value={expiryFilter} onChange={e=>setExpiryFilter(e.target.value)} className="border rounded-md px-3 py-2 text-sm"><option value="">All expiry dates</option><option value="EXPIRING">Expiring in 30 days</option><option value="EXPIRED">Expired</option></select>
           {subscription && (
             <div className="flex items-center gap-2 text-sm">
               <span className={`font-medium ${
