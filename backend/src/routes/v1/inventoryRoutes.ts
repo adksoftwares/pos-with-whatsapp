@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{movements}from'../../controllers/inventoryController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/movements',movements);export default r;
