@@ -177,3 +177,17 @@ The schema additions are in `backend/prisma/schema.prisma`. An additive SQL scri
 8. Automated WhatsApp receipt/media delivery, opt-in records and template management.
 9. Automated backups, restore drills, exports, audit retention and role permissions review.
 10. Monitoring, production deployment configuration, accessibility and device/browser acceptance.
+
+### New API endpoints
+- `GET/POST/PATCH/DELETE /api/v1/customers` — tenant-scoped customer management
+- `GET/POST/DELETE /api/v1/expenses` — shop expense records
+- `GET/POST/PATCH/DELETE /api/v1/suppliers` — supplier directory (mutations management-only)
+- `GET /api/v1/purchases`, `POST /api/v1/purchases/receive` — stock receipts and ledger postings (management-only)
+- `GET /api/v1/shifts/current`, `POST /api/v1/shifts/open`, `POST /api/v1/shifts/:id/close` — cashier float and closing reconciliation
+- `GET/POST /api/v1/returns` — full-sale return workflow
+- `GET /api/v1/inventory/movements` — stock ledger
+- `POST /api/v1/products/:id/adjust-stock` — manager-approved stock correction with audit trail
+- `POST /api/v1/whatsapp/receipt` — send receipt text through configured WhatsApp Cloud API
+
+### Checkout/customer workflow
+Checkout now offers a customer selector for online sales. A selected customer is validated against the active business and attached to the order; their lifetime-spend total is incremented atomically with the sale. Walk-in sales remain supported. Offline checkout remains available without requiring customer selection.
