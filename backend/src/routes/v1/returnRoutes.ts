@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{list,create}from'../../controllers/returnController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/',list);r.post('/',create);export default r;
