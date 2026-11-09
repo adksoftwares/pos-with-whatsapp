@@ -294,3 +294,20 @@ export const updateProductStatus = async (req: Request, res: Response, next: Nex
     next(error);
   }
 };
+
+export const adjustStock = async (req:Request,res:Response,next:NextFunction)=>{
+ try{
+  const businessId=req.businessMembership.businessId,userId=req.user!.id,productId=req.params.id,delta=Number(req.body.quantity),reason=String(req.body.reason||'Manual adjustment').trim();
+  if(!Number.isFinite(delta)||delta===0)throw ApiError.badRequest('Adjustment quantity must be non-zero');
+  if(!['OWNER','ADMIN','MANAGER'].includes(req.businessMembership.role))throw ApiError.forbidden('Management access required');
+  const product=await prisma.product.findFirst({where:{id:productId,businessId}});if(!product)throw ApiError.notFound('Product not found');
+  const updated=await prisma.$transaction(async tx=>{
+   const change=await tx.product.updateMany({where:{id:productId,businessId,...(delta<0?{stockQuantity:{gte:Math.abs(delta)}}:{})},data:{stockQuantity:{increment:delta}}});
+   if(!change.count)throw ApiError.badRequest('Adjustment would make stock negative');
+   await tx.inventoryTransaction.create({data:{businessId,productId,type:'ADJUSTMENT',quantity:delta,referenceType:'MANUAL',createdById:userId,note:reason}});
+   await tx.auditLog.create({data:{businessId,userId,action:'STOCK_ADJUSTMENT',entityType:'PRODUCT',entityId:productId,details:{delta,reason}}});
+   return tx.product.findUnique({where:{id:productId}});
+  });
+  return ApiResponse.success(res,updated,'Stock adjusted');
+ }catch(e){next(e)}
+};
