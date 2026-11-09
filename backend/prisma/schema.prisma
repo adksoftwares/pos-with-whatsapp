@@ -51,6 +51,7 @@ model Business {
   inventoryTransactions InventoryTransaction[]
   orders                Order[]
   payments              Payment[]
+  saleReturn            SaleReturn?
   printerProfiles       PrinterProfile[]
   products              Product[]
   subscriptions         Subscription[]
@@ -160,6 +161,7 @@ model Order {
   payments            Payment[]
   customerId           String?
   customer             Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleReturn           SaleReturn?
 
   @@unique([businessId, orderNumber])
   @@index([businessId, createdAt])
