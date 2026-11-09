@@ -12,6 +12,7 @@ router.use(requireBusinessAccess());
 router.get('/', validate(listQuerySchema), productController.getProducts);
 router.post('/', validate(createProductSchema), productController.createProduct);
 router.get('/barcode/:barcode', productController.getProductByBarcode);
+router.post('/:id/adjust-stock', productController.adjustStock);
 router.get('/:id', productController.getProductById);
 router.patch('/:id', validate(updateProductSchema), productController.updateProduct);
 router.patch('/:id/status', validate(updateStatusSchema), productController.updateProductStatus);
