@@ -141,3 +141,39 @@ Ensure a reverse proxy (e.g., Nginx) is configured to handle HTTPS and serve the
 - Scheduled encrypted backups, CSV/Excel exports and restore guide
 
 **Database change:** apply the updated Prisma schema to the PostgreSQL database before deploying the new Customers and Expenses endpoints. This pass intentionally did not run build or tests, as requested.
+## Feature completion pack (Sri Lanka retail)
+
+This repository now includes these additive modules in the application:
+
+- **Customer profiles:** tenant-scoped CRUD/search, contact data, loyalty and lifetime sales fields. Checkout API can associate a sale with a customer and increases that customer's lifetime spend.
+- **Expense book:** LKR operating expense records, categories, dates, payment method, references and summary totals; management-only deletion and audit trail on create.
+- **Suppliers:** supplier contact directory and business-scoped supplier endpoints.
+- **Stock receiving / purchases:** receive product quantities against a supplier, capture invoice reference and unit cost, update product stock/cost, create inventory ledger transactions and audit the receipt.
+- **Cashier shifts:** opening float, active shift view and closing cash variance capture.
+- **Sales returns:** full-order return once per completed sale, optionally restocking all order lines; creates inventory movements, marks sale/payment refunded and writes an audit event.
+- **WhatsApp:** wa.me sharing remains available; optional WhatsApp Cloud API text sender now uses environment credentials (no credentials committed).
+- **Language foundation:** English/Tamil/Sinhala translation dictionary and persisted language preference selector.
+- **Navigation:** Customers, Expenses, Suppliers, Purchases, Sales Returns and Cashier Shift routes.
+
+### Database rollout
+The schema additions are in `backend/prisma/schema.prisma`. An additive SQL script is included at `backend/prisma/migrations/20261109_retail_completion/migration.sql`. Back up production data and apply the migration before deploying these routes. Keep merchant API secrets only in environment variables.
+
+### Important operational boundaries
+- Returns currently support **full-order returns**, not partial item/quantity returns. Confirm physical goods before choosing restock.
+- Cash shift expected cash is a basic cash-payment aggregation; it is not yet a full denomination-count/cash-drawer accounting system.
+- WhatsApp Cloud API needs Meta business verification/phone-number setup, approved templates for business-initiated messages, and merchant-specific configuration. The current API sender handles text messages only; receipt media/PDF automation needs a separately configured media upload flow.
+- VAT/tax invoice rates and registration data must be configured with a Sri Lankan accountant; this app does not claim automatic tax compliance.
+- Offline sales synchronization and conflict handling still need real-world device/network validation before production use.
+- The language dictionary is a foundation; not every existing screen's static English text has been translated yet.
+
+### Recommended production completion backlog
+1. Partial returns, item-level refunds and credit notes.
+2. Supplier purchase orders, payment settlement and supplier balances.
+3. Customer credit ledger, installment/partial settlement and statements.
+4. Shift-to-payment linkage, denomination count, cash variance reports and manager approvals.
+5. Branch/warehouse transfers, batch/expiry and serial/lot tracking.
+6. Complete translated UI (all screens/forms/validation/receipts) in Tamil and Sinhala.
+7. LankaQR / PayHere merchant payment adapters and reconciliation webhooks.
+8. Automated WhatsApp receipt/media delivery, opt-in records and template management.
+9. Automated backups, restore drills, exports, audit retention and role permissions review.
+10. Monitoring, production deployment configuration, accessibility and device/browser acceptance.
