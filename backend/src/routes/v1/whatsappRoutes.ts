@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{sendReceipt}from'../../controllers/whatsappController';const r=Router();r.use(authenticate,requireBusinessAccess());r.post('/receipt',sendReceipt);export default r;
