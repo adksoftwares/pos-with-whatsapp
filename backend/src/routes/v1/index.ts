@@ -10,6 +10,8 @@ import syncRoutes from './syncRoutes';
 import settingsRoutes from './settingsRoutes';
 import subscriptionRoutes from './subscriptionRoutes';
 import healthRoutes from './healthRoutes';
+import customerRoutes from './customerRoutes';
+import expenseRoutes from './expenseRoutes';
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use('/sync', syncRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/health', healthRoutes);
+router.use('/customers', customerRoutes);
+router.use('/expenses', expenseRoutes);
 
 export default router;
