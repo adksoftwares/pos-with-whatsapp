@@ -2,7 +2,7 @@ import{useEffect,useState}from'react';import{Plus,Search,Users,Pencil,Trash2}fro
 type Customer={id:string;name:string;phone?:string|null;email?:string|null;address?:string|null;notes?:string|null;loyaltyPoints:number;totalSpent:number};
 const blank={name:'',phone:'',email:'',address:'',notes:''};
 export const Customers=()=>{const[rows,R]=useState<Customer[]>([]),[q,Q]=useState(''),[loading,L]=useState(true),[open,O]=useState(false),[editing,Ed]=useState<Customer|null>(null),[form,F]=useState(blank);
-const load=async()=>{L(true);try{R((await apiClient.get('/customers',{params:{search:q,limit:100}})).data.customers)}catch{toast.error('Could not load customers')}finally{L(false)}};useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t)},[q]);
+const load=async()=>{L(true);try{{const d=(await apiClient.get('/customers',{params:{search:q,limit:100}})).data;R(Array.isArray(d)?d:(d.customers||[]))}}catch{toast.error('Could not load customers')}finally{L(false)}};useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t)},[q]);
 const start=(c?:Customer)=>{Ed(c||null);F(c?{name:c.name,phone:c.phone||'',email:c.email||'',address:c.address||'',notes:c.notes||''}:blank);O(true)};
 const save=async(e:React.FormEvent)=>{e.preventDefault();try{if(editing)await apiClient.patch('/customers/'+editing.id,form);else await apiClient.post('/customers',form);toast.success(editing?'Customer updated':'Customer added');O(false);load()}catch(x:any){toast.error(x.message||'Save failed')}};
 const remove=async(id:string)=>{if(!confirm('Delete this customer profile?'))return;try{await apiClient.delete('/customers/'+id);toast.success('Customer deleted');load()}catch(x:any){toast.error(x.message||'Delete failed')}};
