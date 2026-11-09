@@ -267,15 +267,8 @@ export const ProductList = () => {
         </CardContent>
       </Card>
 
-      {isFormOpen && (
-        <Modal isOpen={!!stockProduct} onClose={()=>setStockProduct(null)} title={`Adjust stock · ${stockProduct?.name||''}`}><form onSubmit={saveStockAdjustment} className="space-y-3"><p className="text-sm text-gray-500">Current stock: {Number(stockProduct?.stockQuantity||0)}</p><Input required type="number" step="0.001" value={stockDelta} onChange={e=>setStockDelta(e.target.value)} placeholder="Quantity (+ add / − remove)"/><Input required value={stockReason} onChange={e=>setStockReason(e.target.value)} placeholder="Reason"/><p className="text-xs text-gray-500">Use positive values to add stock and negative values to remove stock. The inventory ledger records this adjustment.</p><div className="flex justify-end gap-2"><Button variant="secondary" type="button" onClick={()=>setStockProduct(null)}>Cancel</Button><Button type="submit">Save adjustment</Button></div></form></Modal>
-      <ProductFormModal 
-          isOpen={isFormOpen} 
-          onClose={() => setIsFormOpen(false)} 
-          productToEdit={selectedProduct}
-          onSuccess={onSaveSuccess}
-        />
-      )}
+      <Modal isOpen={!!stockProduct} onClose={()=>setStockProduct(null)} title={`Adjust stock · ${stockProduct?.name||''}`}><form onSubmit={saveStockAdjustment} className="space-y-3"><p className="text-sm text-gray-500">Current stock: {Number(stockProduct?.stockQuantity||0)}</p><Input required type="number" step="0.001" value={stockDelta} onChange={e=>setStockDelta(e.target.value)} placeholder="Quantity (+ add / − remove)"/><Input required value={stockReason} onChange={e=>setStockReason(e.target.value)} placeholder="Reason"/><p className="text-xs text-gray-500">Positive adds stock; negative removes stock. An inventory ledger entry is created.</p><div className="flex justify-end gap-2"><Button variant="secondary" type="button" onClick={()=>setStockProduct(null)}>Cancel</Button><Button type="submit">Save adjustment</Button></div></form></Modal>
+      {isFormOpen && <ProductFormModal isOpen={isFormOpen} onClose={()=>setIsFormOpen(false)} productToEdit={selectedProduct} onSuccess={onSaveSuccess}/ >
     </div>
   );
 };
