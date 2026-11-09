@@ -17,6 +17,8 @@ import { SubscriptionPage } from './pages/settings/Subscription';
 import { AdminSubscriptions } from './pages/admin/AdminSubscriptions';
 import { Customers } from './pages/Customers';
 import { Expenses } from './pages/Expenses';
+import { Suppliers } from './pages/Suppliers';
+import { Purchases } from './pages/Purchases';
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<ReportsDashboard />} />
             <Route path="expenses" element={<Expenses />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="purchases" element={<Purchases />} />
             <Route path="settings" element={<Settings />} />
             <Route path="settings/printers" element={<PrintersSettings />} />
             <Route path="settings/subscription" element={<SubscriptionPage />} />
