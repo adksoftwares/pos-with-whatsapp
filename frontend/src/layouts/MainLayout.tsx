@@ -4,7 +4,6 @@ import { Menu, X, LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Sett
 import { cn } from '../utils/cn';
 import { useAuth } from '../state/AuthContext';
 import { ConfirmDialog } from '../components/ui/Modal';
-import { Wallet } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
