@@ -1,0 +1,1 @@
+import{Router}from'express';import{authenticate,requireBusinessAccess}from'../../middleware/auth';import{list,receive}from'../../controllers/purchaseController';const r=Router();r.use(authenticate,requireBusinessAccess());r.get('/',list);r.post('/receive',receive);export default r;
