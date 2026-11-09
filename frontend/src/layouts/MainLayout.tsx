@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, LogOut, Cloud, Crown, Shield } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, LogOut, Cloud, Crown, Shield, Wallet } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../state/AuthContext';
 import { ConfirmDialog } from '../components/ui/Modal';
+import { Wallet } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,6 +12,7 @@ const navItems = [
   { to: '/sales', label: 'Sales History', icon: BarChart3 },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/expenses', label: 'Expenses', icon: Wallet },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/sync', label: 'Offline Sync', icon: Cloud },
   { to: '/settings', label: 'Settings', icon: Settings },
