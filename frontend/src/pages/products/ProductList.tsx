@@ -12,6 +12,8 @@ import { apiClient } from '../../api/client';
 import { Plus, Search, Edit, Power, PowerOff, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductFormModal } from './ProductFormModal';
+import { Modal } from '../../components/ui/Modal';
+import { ArrowLeftRight } from 'lucide-react';
 import { useSubscription } from '../../state/SubscriptionContext';
 
 interface Product {
@@ -37,6 +39,9 @@ export const ProductList = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  const [stockProduct, setStockProduct] = useState<Product | null>(null);
+  const [stockDelta, setStockDelta] = useState('');
+  const [stockReason, setStockReason] = useState('Stock count correction');
   const { subscription, refresh: refreshSub } = useSubscription();
 
   const fetchProducts = async () => {
@@ -86,6 +91,8 @@ export const ProductList = () => {
     setSelectedProduct(product);
     setIsFormOpen(true);
   };
+
+  const saveStockAdjustment = async (e: React.FormEvent) => { e.preventDefault(); if(!stockProduct) return; try { await apiClient.post(`/products/${stockProduct.id}/adjust-stock`, { quantity:Number(stockDelta), reason:stockReason }); toast.success('Stock adjusted'); setStockProduct(null); setStockDelta(''); fetchProducts(); } catch(error:any) { toast.error(error.message||'Stock adjustment failed'); } };
 
   const onSaveSuccess = () => {
     setIsFormOpen(false);
@@ -204,6 +211,7 @@ export const ProductList = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <button onClick={() => {setStockProduct(product);setStockDelta('');}} className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Adjust stock"><ArrowLeftRight size={16}/></button>
                             <button 
                               onClick={() => handleEdit(product)}
                               className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -260,7 +268,8 @@ export const ProductList = () => {
       </Card>
 
       {isFormOpen && (
-        <ProductFormModal 
+        <Modal isOpen={!!stockProduct} onClose={()=>setStockProduct(null)} title={`Adjust stock · ${stockProduct?.name||''}`}><form onSubmit={saveStockAdjustment} className="space-y-3"><p className="text-sm text-gray-500">Current stock: {Number(stockProduct?.stockQuantity||0)}</p><Input required type="number" step="0.001" value={stockDelta} onChange={e=>setStockDelta(e.target.value)} placeholder="Quantity (+ add / − remove)"/><Input required value={stockReason} onChange={e=>setStockReason(e.target.value)} placeholder="Reason"/><p className="text-xs text-gray-500">Use positive values to add stock and negative values to remove stock. The inventory ledger records this adjustment.</p><div className="flex justify-end gap-2"><Button variant="secondary" type="button" onClick={()=>setStockProduct(null)}>Cancel</Button><Button type="submit">Save adjustment</Button></div></form></Modal>
+      <ProductFormModal 
           isOpen={isFormOpen} 
           onClose={() => setIsFormOpen(false)} 
           productToEdit={selectedProduct}
