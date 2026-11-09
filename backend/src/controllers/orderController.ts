@@ -143,6 +143,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       return ApiResponse.success(res, existingOrder, 'Order processed successfully');
     }
 
+    if (customerId) { const customer = await prisma.customer.findFirst({ where: { id: String(customerId), businessId } }); if (!customer) throw ApiError.badRequest('Customer does not belong to this business'); }
     const validatedOrder = await buildValidatedOrder(businessId, items, orderDiscountAmount);
 
     const paymentAmount = validatedOrder.grandTotal;
@@ -249,6 +250,9 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       }
 
       if (customerId) await tx.customer.update({ where: { id: customerId }, data: { totalSpent: { increment: paymentAmount } } });
+
+      // Update customer lifetime value and reward points when the sale is linked.
+      if (customerId) await tx.customer.update({ where: { id: String(customerId) }, data: { totalSpent: { increment: paymentAmount }, loyaltyPoints: { increment: Math.floor(paymentAmount / 100) } } });
 
       // 5. Create Audit Event
       await tx.auditLog.create({
