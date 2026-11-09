@@ -15,6 +15,7 @@ import expenseRoutes from './expenseRoutes';
 import supplierRoutes from './supplierRoutes';
 import purchaseRoutes from './purchaseRoutes';
 import shiftRoutes from './shiftRoutes';
+import returnRoutes from './returnRoutes';
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use('/expenses', expenseRoutes);
 router.use('/suppliers', supplierRoutes);
 router.use('/purchases', purchaseRoutes);
 router.use('/shifts', shiftRoutes);
+router.use('/returns', returnRoutes);
 
 export default router;
