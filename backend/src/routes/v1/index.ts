@@ -17,6 +17,7 @@ import purchaseRoutes from './purchaseRoutes';
 import shiftRoutes from './shiftRoutes';
 import returnRoutes from './returnRoutes';
 import whatsappRoutes from './whatsappRoutes';
+import inventoryRoutes from './inventoryRoutes';
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.use('/purchases', purchaseRoutes);
 router.use('/shifts', shiftRoutes);
 router.use('/returns', returnRoutes);
 router.use('/whatsapp', whatsappRoutes);
+router.use('/inventory', inventoryRoutes);
 
 export default router;
