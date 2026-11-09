@@ -25,7 +25,6 @@ model User {
   payments               Payment[]              @relation("CreatedBy")
   activatedSubscriptions Subscription[]         @relation("ActivatedBy")
   cashShifts            CashShift[]
-  saleReturns           SaleReturn[]
   subscriptionEvents     SubscriptionEvent[]    @relation("EventPerformedBy")
 }
 
@@ -51,7 +50,6 @@ model Business {
   inventoryTransactions InventoryTransaction[]
   orders                Order[]
   payments              Payment[]
-  saleReturn            SaleReturn?
   printerProfiles       PrinterProfile[]
   products              Product[]
   subscriptions         Subscription[]
