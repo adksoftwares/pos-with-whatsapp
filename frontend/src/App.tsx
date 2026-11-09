@@ -21,6 +21,7 @@ import { Suppliers } from './pages/Suppliers';
 import { Purchases } from './pages/Purchases';
 import { Returns } from './pages/Returns';
 import { Shifts } from './pages/Shifts';
+import { InventoryLedger } from './pages/InventoryLedger';
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
             <Route path="purchases" element={<Purchases />} />
             <Route path="returns" element={<Returns />} />
             <Route path="shifts" element={<Shifts />} />
+            <Route path="inventory-ledger" element={<InventoryLedger />} />
             <Route path="settings" element={<Settings />} />
             <Route path="settings/printers" element={<PrintersSettings />} />
             <Route path="settings/subscription" element={<SubscriptionPage />} />
