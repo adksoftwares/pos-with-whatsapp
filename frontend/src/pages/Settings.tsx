@@ -6,11 +6,13 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../state/AuthContext';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';
+import { getLanguage, setLanguage, supportedLanguages, Language } from '../utils/i18n';
 
 export const Settings = () => {
   const { activeBusiness } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [language, setSelectedLanguage] = useState<Language>(getLanguage());
 
   // Business profile form
   const [businessForm, setBusinessForm] = useState({
@@ -196,6 +198,8 @@ export const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        <Card><CardHeader><CardTitle>Language / மொழி / භාෂාව</CardTitle></CardHeader><CardContent><label className="block text-sm font-medium mb-2">Interface language</label><select className="w-full max-w-sm rounded-md border p-3" value={language} onChange={e=>{const v=e.target.value as Language;setSelectedLanguage(v);setLanguage(v);toast.success('Language preference saved. New translated labels use this preference.')}}>{supportedLanguages.map(l=><option key={l.value} value={l.value}>{l.label}</option>)}</select><p className="text-xs text-gray-500 mt-2">English, Tamil and Sinhala translation foundation is included.</p></CardContent></Card>
 
         {/* WhatsApp Settings */}
         <Card>
