@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../state/AuthContext';
 import { apiClient } from '../../api/client';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Shield, Crown, Briefcase, CreditCard, Sparkles } from 'lucide-react';
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -20,15 +20,17 @@ export const Login = () => {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsLoading(true);
-    
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.post('/auth/login', { email: loginEmail, password: loginPass });
       login(response.data.token, response.data.user);
-      toast.success('Logged in successfully');
-      navigate(from, { replace: true });
+      toast.success(`Welcome back, ${response.data.user.name}!`);
+      
+      // If Cashier, go directly to POS Billing, otherwise dashboard
+      const isCashier = response.data.user.memberships?.some((m: any) => m.role === 'CASHIER');
+      const targetPath = from !== '/dashboard' ? from : (isCashier ? '/pos' : '/dashboard');
+      navigate(targetPath, { replace: true });
     } catch (error: any) {
       toast.error(error.message || 'Failed to login');
     } finally {
@@ -36,18 +38,97 @@ export const Login = () => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(email, password);
+  };
+
+  const handleQuickDemo = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('Password123!');
+    performLogin(demoEmail, 'Password123!');
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50/80">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded flex items-center justify-center text-white font-black text-xl mx-auto mb-4">
+        
+        {/* Brand Header */}
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-gradient-to-tr from-blue-700 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/25 flex items-center justify-center text-white font-black text-2xl mx-auto mb-3 tracking-wider">
             POS
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="text-gray-500 mt-1">Sign in to your retail dashboard</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">ADK Retail POS</h1>
+          <p className="text-slate-500 text-sm mt-1">Multi-Tenant Retail & Billing Management</p>
         </div>
 
-        <Card>
+        {/* 1-Click Role Switcher for Demo & Human Testing */}
+        <div className="mb-4 bg-white/90 backdrop-blur border border-indigo-100 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-2.5">
+            <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+            1-Click Demo Accounts
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickDemo('owner@pos.lk')}
+              className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/60 text-left transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Crown size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-none truncate">Store Owner</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">Full Permissions</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickDemo('manager@pos.lk')}
+              className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/60 text-left transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Briefcase size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-none truncate">Store Manager</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">Ops & Inventory</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickDemo('cashier@pos.lk')}
+              className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/60 text-left transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                <CreditCard size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-none truncate">Cashier (Counter)</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">POS & Shifts</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickDemo('superadmin@pos.lk')}
+              className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/60 text-left transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Shield size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 leading-none truncate">Super Admin</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">Platform SaaS</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Credentials Form */}
+        <Card className="border-slate-200/90 shadow-sm rounded-2xl overflow-hidden bg-white">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input 
@@ -56,6 +137,7 @@ export const Login = () => {
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@business.com"
                 autoComplete="email"
               />
               <Input 
@@ -64,12 +146,13 @@ export const Login = () => {
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 autoComplete="current-password"
                 rightIcon={
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    className="hover:text-gray-600 focus:outline-none"
+                    className="hover:text-slate-600 text-slate-400 focus:outline-none"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -77,23 +160,24 @@ export const Login = () => {
                 }
               />
               
-              <div className="flex items-center justify-between">
-                <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-slate-400">Default pass: Password123!</span>
+                <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
                   Forgot password?
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full" isLoading={isLoading}>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm text-sm font-semibold py-2.5 rounded-xl mt-2" isLoading={isLoading}>
                 Sign In
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-500">
-            Create a business
+        <p className="text-center text-xs text-slate-500 mt-6">
+          Need a new business profile?{' '}
+          <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
+            Create store account
           </Link>
         </p>
       </div>

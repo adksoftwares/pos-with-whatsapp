@@ -44,6 +44,9 @@ export const POS = () => {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [catalog, setCatalog] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   
   const [discount, setDiscount] = useState<number>(() => {
     const saved = localStorage.getItem('pos_draft_discount');
@@ -54,6 +57,30 @@ export const POS = () => {
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Load initial product catalog and categories for quick POS selection
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        if (isOnline) {
+          const [pRes, cRes] = await Promise.all([
+            apiClient.get('/products', { params: { limit: 50, status: 'ACTIVE' } }),
+            apiClient.get('/categories')
+          ]);
+          setCatalog(pRes.data?.products || []);
+          setCategories(cRes.data || []);
+        } else if (activeBusiness) {
+          const offlineProds = await db.products
+            .where('businessId').equals(activeBusiness.id)
+            .and(p => p.status === 'ACTIVE')
+            .limit(50)
+            .toArray();
+          setCatalog(offlineProds);
+        }
+      } catch (err) {}
+    };
+    loadCatalog();
+  }, [isOnline, activeBusiness]);
 
   // Focus input automatically on mount and after scanner closes
   useEffect(() => {
@@ -362,45 +389,115 @@ export const POS = () => {
           </form>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        {/* Category Filter Pills (Visible when not actively searching text) */}
+        {searchInput.length === 0 && categories.length > 0 && (
+          <div className="flex gap-2 p-3 bg-white border-b border-slate-100 overflow-x-auto shrink-0 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('ALL')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedCategory === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All Items ({catalog.length})
+            </button>
+            {categories.map((c: any) => {
+              const count = catalog.filter((p: any) => p.categoryId === c.id).length;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(c.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    selectedCategory === c.id
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {c.name} {count > 0 && `(${count})`}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/60">
           {searchInput.length > 0 && searchResults.length === 0 && !isSearching && (
-            <div className="text-center text-gray-500 mt-10">
+            <div className="text-center text-slate-400 mt-10">
               No products found matching "{searchInput}"
             </div>
           )}
 
           {isSearching && (
-            <div className="text-center text-gray-400 mt-10 animate-pulse">
-              Searching...
+            <div className="text-center text-blue-600 mt-10 animate-pulse font-medium text-sm">
+              Searching catalog...
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-            {searchResults.map(product => {
-              const isOutOfStock = Number(product.stockQuantity) <= 0;
+          {/* Product Grid: either search results or category-filtered catalog */}
+          {(() => {
+            const displayProducts = searchInput.length > 0
+              ? searchResults
+              : (selectedCategory === 'ALL' 
+                  ? catalog 
+                  : catalog.filter((p: any) => p.categoryId === selectedCategory));
+
+            if (displayProducts.length === 0 && !isSearching && searchInput.length === 0) {
               return (
-                <div 
-                  key={product.id}
-                  onClick={() => !isOutOfStock && handleAddToCart(product)}
-                  className={`relative p-3 border rounded-lg shadow-sm flex flex-col transition-all cursor-pointer 
-                    ${isOutOfStock 
-                      ? 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed' 
-                      : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md active:scale-95'
-                    }`}
-                >
-                  <div className="flex-1 font-medium text-gray-900 leading-tight mb-2">
-                    {product.name}
-                  </div>
-                  <div className="mt-auto">
-                    <div className="text-blue-700 font-bold mb-1">{formatLKR(product.sellingPrice)}</div>
-                    <div className="text-xs text-gray-500 flex justify-between">
-                      <span>{isOutOfStock ? <span className="text-red-600 font-medium">Out of Stock</span> : `Stock: ${Number(product.stockQuantity)}`}</span>
-                    </div>
-                  </div>
+                <div className="text-center text-slate-400 mt-12 text-sm">
+                  No products in this category yet.
                 </div>
-              )
-            })}
-          </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                {displayProducts.map(product => {
+                  const isOutOfStock = Number(product.stockQuantity) <= 0;
+                  return (
+                    <div 
+                      key={product.id}
+                      onClick={() => !isOutOfStock && handleAddToCart(product)}
+                      className={`relative p-3.5 border rounded-2xl shadow-xs flex flex-col justify-between transition-all cursor-pointer select-none
+                        ${isOutOfStock 
+                          ? 'bg-slate-100 border-slate-200 opacity-50 cursor-not-allowed' 
+                          : 'bg-white border-slate-200/80 hover:border-blue-500 hover:shadow-md active:scale-95'
+                        }`}
+                    >
+                      <div>
+                        {product.company && (
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
+                            {product.company}
+                          </span>
+                        )}
+                        <div className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">
+                          {product.name}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-end justify-between">
+                        <div>
+                          <div className="text-blue-700 font-black text-base">{formatLKR(product.sellingPrice)}</div>
+                          <div className="text-[11px] text-slate-400">
+                            {isOutOfStock ? (
+                              <span className="text-rose-600 font-semibold">Out of Stock</span>
+                            ) : (
+                              <span>Stock: <strong className="text-slate-700">{Number(product.stockQuantity)}</strong></span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold hover:bg-blue-600 hover:text-white transition-colors">
+                          <Plus size={16} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

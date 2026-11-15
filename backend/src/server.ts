@@ -1,9 +1,10 @@
 import app from './app';
 import { env } from './config/env';
+import { ensurePostgres } from './db/ensureDb';
 
 const startServer = async () => {
   try {
-    // Here we can initialize database connection (Prisma) before starting
+    await ensurePostgres();
     
     app.listen(env.PORT, () => {
       console.log(`🚀 Server is running on port ${env.PORT} in ${env.NODE_ENV} mode`);

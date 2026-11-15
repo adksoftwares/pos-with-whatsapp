@@ -29,6 +29,8 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 *.db
+data/
+backend/data/
 
 # Operating System & IDE
 .DS_Store
