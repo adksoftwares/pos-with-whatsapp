@@ -99,6 +99,12 @@ async function main() {
     create: { userId: cashier.id, businessId: business.id, role: Role.CASHIER }
   });
 
+  await prisma.businessMembership.upsert({
+    where: { userId_businessId: { userId: superAdmin.id, businessId: business.id } },
+    update: { role: Role.OWNER },
+    create: { userId: superAdmin.id, businessId: business.id, role: Role.OWNER }
+  });
+
   // Business Settings
   await prisma.businessSettings.upsert({
     where: { businessId: business.id },

@@ -47,14 +47,35 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 export const requireBusinessAccess = (allowedRoles?: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const businessId = req.headers['x-business-id'] as string;
-      
-      if (!businessId) {
-        throw ApiError.badRequest('Business context required (X-Business-Id header missing)');
-      }
-
       if (!req.user) {
         throw ApiError.unauthorized();
+      }
+
+      let businessId = req.headers['x-business-id'] as string;
+      if (!businessId && req.user.memberships && req.user.memberships.length > 0) {
+        businessId = req.user.memberships[0].businessId;
+      }
+
+      // Platform Super Admin has universal full access across any store
+      if (req.user.isSuperAdmin) {
+        const business = businessId 
+          ? await prisma.business.findUnique({ where: { id: businessId } })
+          : await prisma.business.findFirst();
+
+        if (business) {
+          req.businessMembership = {
+            id: `superadmin-virtual-${business.id}`,
+            userId: req.user.id,
+            businessId: business.id,
+            role: Role.OWNER,
+            business
+          };
+          return next();
+        }
+      }
+
+      if (!businessId) {
+        throw ApiError.badRequest('Business context required (X-Business-Id header missing)');
       }
 
       const membership = req.user.memberships.find((m: any) => m.businessId === businessId);

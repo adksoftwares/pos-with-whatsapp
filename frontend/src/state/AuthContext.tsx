@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveBusinessId(businessId);
   };
 
-  const activeMembership = user?.memberships.find(m => m.businessId === activeBusinessId);
+  const activeMembership = user?.memberships.find(m => m.businessId === activeBusinessId) || (user?.memberships && user.memberships.length > 0 ? user.memberships[0] : null);
 
   return (
     <AuthContext.Provider value={{
