@@ -9,7 +9,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { formatLKR } from '../../utils/currency';
 import { apiClient } from '../../api/client';
-import { Plus, Search, Edit, Power, PowerOff, Package } from 'lucide-react';
+import { Plus, Search, Edit, Power, PowerOff, Package, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductFormModal } from './ProductFormModal';
 import { Modal } from '../../components/ui/Modal';
@@ -127,7 +127,22 @@ export const ProductList = () => {
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Products</h2>
           <p className="text-gray-500 text-sm mt-1">Manage your inventory, prices, and stock.</p>
         </div>
-        <div className="flex items-center gap-3"><select value={expiryFilter} onChange={e=>setExpiryFilter(e.target.value)} className="border rounded-md px-3 py-2 text-sm"><option value="">All expiry dates</option><option value="EXPIRING">Expiring in 30 days</option><option value="EXPIRED">Expired</option></select>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <select 
+              value={expiryFilter} 
+              onChange={e=>setExpiryFilter(e.target.value)} 
+              style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
+              className="appearance-none border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+            >
+              <option value="">All expiry dates</option>
+              <option value="EXPIRING">Expiring in 30 days</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
+              <ChevronDown size={14} />
+            </div>
+          </div>
           {subscription && (
             <div className="flex items-center gap-2 text-sm">
               <span className={`font-medium ${

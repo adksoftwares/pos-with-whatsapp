@@ -354,29 +354,29 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
         <div className="flex flex-col h-fit my-auto items-center thermal-print-wrapper">
           
           {/* Action buttons (hidden when printing) */}
-          <div className="bg-white rounded-t-lg shadow-xl p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden w-full max-w-xl mb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center">
-              <Receipt className="w-5 h-5 mr-2" /> Receipt
+          <div className="bg-white rounded-xl shadow-xl p-3 border border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden w-full max-w-xl mb-3">
+            <h2 className="text-base font-bold text-gray-900 flex items-center">
+              <Receipt className="w-4 h-4 mr-1.5 text-blue-600" /> Receipt
             </h2>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto">
               <select 
                 value={paperSize} 
                 onChange={(e) => setPaperSize(e.target.value as '80mm' | '58mm')}
-                className="bg-gray-100 border-gray-300 rounded text-sm px-2 py-1"
+                className="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-semibold px-2 py-1.5 cursor-pointer transition-colors"
               >
-                <option value="80mm">80mm Paper</option>
-                <option value="58mm">58mm Paper</option>
+                <option value="80mm">80mm</option>
+                <option value="58mm">58mm</option>
               </select>
-              <button onClick={handleOpenWhatsApp} className="bg-green-600 text-white px-3 py-1.5 rounded flex items-center hover:bg-green-700 text-sm">
-                  <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
-                </button>
-              <button onClick={() => generatePDF()} className="bg-red-600 text-white px-3 py-1.5 rounded flex items-center hover:bg-red-700 text-sm">
-                <Download className="w-4 h-4 mr-1" /> PDF
+              <button onClick={handleOpenWhatsApp} className="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg flex items-center hover:bg-emerald-700 text-xs font-semibold shadow-xs transition-colors">
+                <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp
               </button>
-              <button onClick={handlePrint} className="bg-blue-600 text-white px-3 py-1.5 rounded flex items-center hover:bg-blue-700 text-sm">
-                <Printer className="w-4 h-4 mr-1" /> Print
+              <button onClick={() => generatePDF()} className="bg-rose-600 text-white px-2.5 py-1.5 rounded-lg flex items-center hover:bg-rose-700 text-xs font-semibold shadow-xs transition-colors">
+                <Download className="w-3.5 h-3.5 mr-1" /> PDF
               </button>
-              <button onClick={onClose} className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300 text-sm">
+              <button onClick={handlePrint} className="bg-blue-600 text-white px-2.5 py-1.5 rounded-lg flex items-center hover:bg-blue-700 text-xs font-semibold shadow-xs transition-colors">
+                <Printer className="w-3.5 h-3.5 mr-1" /> Print
+              </button>
+              <button onClick={onClose} className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors">
                 Close
               </button>
             </div>

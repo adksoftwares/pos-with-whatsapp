@@ -47,10 +47,19 @@ body {
   box-sizing: border-box;
 }
 
+/* Headings inherit text color so Tailwind utility classes (text-white, text-amber-300, etc.) take full effect */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 600;
-  color: var(--color-text-main);
+  color: inherit;
+}
+
+/* Ensure appearance-none cleanly removes native dropdown carets on Chrome/Edge/Safari/Firefox */
+select.appearance-none {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: none;
 }
 
 a {

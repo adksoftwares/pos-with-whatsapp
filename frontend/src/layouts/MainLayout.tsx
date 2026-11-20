@@ -35,27 +35,27 @@ const navSections: NavSection[] = [
   {
     title: 'Inventory & Stock',
     items: [
-      { to: '/products', label: 'Products Catalog', icon: Package },
-      { to: '/inventory-ledger', label: 'Inventory Ledger', icon: History },
-      { to: '/purchases', label: 'Purchase Invoices', icon: PackagePlus },
-      { to: '/suppliers', label: 'Suppliers Directory', icon: Truck },
+      { to: '/products', label: 'Products Catalog', icon: Package, roles: ['OWNER', 'MANAGER'] },
+      { to: '/inventory-ledger', label: 'Inventory Ledger', icon: History, roles: ['OWNER', 'MANAGER'] },
+      { to: '/purchases', label: 'Purchase Invoices', icon: PackagePlus, roles: ['OWNER', 'MANAGER'] },
+      { to: '/suppliers', label: 'Suppliers Directory', icon: Truck, roles: ['OWNER', 'MANAGER'] },
     ]
   },
   {
     title: 'CRM & Finance',
     items: [
-      { to: '/dashboard', label: 'Store Overview', icon: LayoutDashboard },
+      { to: '/dashboard', label: 'Store Overview', icon: LayoutDashboard, roles: ['OWNER', 'MANAGER'] },
       { to: '/customers', label: 'Customers & Loyalty', icon: Users },
-      { to: '/expenses', label: 'Operating Expenses', icon: Wallet },
-      { to: '/reports', label: 'Analytics & Reports', icon: BarChart3 },
+      { to: '/expenses', label: 'Operating Expenses', icon: Wallet, roles: ['OWNER', 'MANAGER'] },
+      { to: '/reports', label: 'Analytics & Reports', icon: BarChart3, roles: ['OWNER', 'MANAGER'] },
     ]
   },
   {
     title: 'System & Connectivity',
     items: [
       { to: '/sync', label: 'Offline Sync Queue', icon: Cloud },
-      { to: '/settings', label: 'Business Settings', icon: Settings },
-      { to: '/settings/subscription', label: 'Plan & Billing', icon: Crown },
+      { to: '/settings', label: 'Business Settings', icon: Settings, roles: ['OWNER'] },
+      { to: '/settings/subscription', label: 'Plan & Billing', icon: Crown, roles: ['OWNER'] },
     ]
   }
 ];
@@ -272,31 +272,39 @@ export const MainLayout = () => {
           )}
         >
           <nav className="p-3 space-y-4 flex-1 overflow-y-auto">
-            {navSections.map((section, idx) => (
-              <div key={idx} className="space-y-1">
-                {section.title && (
-                  <p className="px-3 pt-1 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    {section.title}
-                  </p>
-                )}
-                {section.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={closeMenu}
-                    className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group",
-                      isActive 
-                        ? "bg-blue-600 text-white shadow-sm font-semibold" 
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                    )}
-                  >
-                    <item.icon size={18} className="shrink-0 transition-transform group-hover:scale-105" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            ))}
+            {navSections.map((section, idx) => {
+              const visibleItems = section.items.filter(item => {
+                if (!item.roles) return true;
+                if ((user as any)?.isSuperAdmin) return true;
+                return activeRole && item.roles.includes(activeRole);
+              });
+              if (visibleItems.length === 0) return null;
+              return (
+                <div key={idx} className="space-y-1">
+                  {section.title && (
+                    <p className="px-3 pt-1 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      {section.title}
+                    </p>
+                  )}
+                  {visibleItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={closeMenu}
+                      className={({ isActive }) => cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group",
+                        isActive 
+                          ? "bg-blue-600 text-white shadow-sm font-semibold" 
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                      )}
+                    >
+                      <item.icon size={18} className="shrink-0 transition-transform group-hover:scale-105" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              );
+            })}
 
             {/* Super Admin section — only shown to isSuperAdmin users */}
             {(user as any)?.isSuperAdmin && (

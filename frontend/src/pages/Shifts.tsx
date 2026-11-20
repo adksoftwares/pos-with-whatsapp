@@ -81,7 +81,7 @@ export const Shifts: React.FC = () => {
                 <Clock size={20} className="animate-spin" style={{ animationDuration: '8s' }} />
               </div>
               <div>
-                <h3 className="font-bold text-base">Active Register Shift</h3>
+                <h3 className="font-bold text-base text-white">Active Register Shift</h3>
                 <p className="text-xs text-emerald-100">
                   Opened on {new Date(shift.openedAt).toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>

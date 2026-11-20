@@ -27,9 +27,19 @@ export const Login = () => {
       login(response.data.token, response.data.user);
       toast.success(`Welcome back, ${response.data.user.name}!`);
       
-      // If Cashier, go directly to POS Billing, otherwise dashboard
-      const isCashier = response.data.user.memberships?.some((m: any) => m.role === 'CASHIER');
-      const targetPath = from !== '/dashboard' ? from : (isCashier ? '/pos' : '/dashboard');
+      // Intelligent role-based landing page
+      const user = response.data.user;
+      const isCashier = !user.isSuperAdmin && user.memberships?.some((m: any) => m.role === 'CASHIER');
+      const isSuperAdmin = user.isSuperAdmin;
+      
+      let targetPath = '/dashboard';
+      if (isSuperAdmin) {
+        targetPath = '/admin/subscriptions';
+      } else if (isCashier) {
+        targetPath = '/pos';
+      } else if (from && from !== '/' && from !== '/dashboard') {
+        targetPath = from;
+      }
       navigate(targetPath, { replace: true });
     } catch (error: any) {
       toast.error(error.message || 'Failed to login');

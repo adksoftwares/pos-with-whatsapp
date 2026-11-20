@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { CheckCircle, CreditCard, Banknote, QrCode, Landmark } from 'lucide-react';
+import { CheckCircle, CreditCard, Banknote, QrCode, Landmark, ChevronDown } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { formatLKR } from '../../utils/currency';
 import toast from 'react-hot-toast';
@@ -245,18 +245,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {customers.length > 0 && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer (Optional)</label>
-              <select
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Walk-in Customer</option>
-                {customers.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.phone ? `(${c.phone})` : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="w-full appearance-none px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-800"
+                >
+                  <option value="">Walk-in Customer</option>
+                  {customers.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.phone ? `(${c.phone})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
+                  <ChevronDown size={16} />
+                </div>
+              </div>
             </div>
           )}
           <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
