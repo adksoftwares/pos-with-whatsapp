@@ -95,7 +95,7 @@ export const Expenses: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Recorded Outflow</p>
-              <h2 className="text-3xl font-black text-amber-300 mt-0.5">{formatLKR(totalAmount)}</h2>
+              <h2 className="text-3xl font-black mt-0.5" style={{ color: '#fcd34d' }}>{formatLKR(totalAmount)}</h2>
             </div>
           </div>
           <div className="text-xs text-slate-400 font-medium">

@@ -45,11 +45,11 @@ app.use(globalLimiter);
 // ── Strict rate limit for auth routes (brute-force protection) ───────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 login attempts per 15 min per IP
+  max: env.NODE_ENV === 'production' ? 20 : 1000, // Higher limit in development for seamless demo/testing
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: { code: 'AUTH_RATE_LIMIT_EXCEEDED', message: 'Too many authentication attempts. Please try again in 15 minutes.' } },
-  skip: (req) => env.NODE_ENV === 'test',
+  skip: (req) => env.NODE_ENV === 'test' || env.NODE_ENV === 'development',
 });
 app.use('/api/v1/auth', authLimiter);
 
