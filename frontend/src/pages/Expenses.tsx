@@ -94,8 +94,8 @@ export const Expenses: React.FC = () => {
               <Wallet size={24} />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recorded Outflow</p>
-              <h2 className="text-3xl font-black text-white mt-0.5">{formatLKR(totalAmount)}</h2>
+              <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Total Recorded Outflow</p>
+              <h2 className="text-3xl font-black text-amber-300 mt-0.5">{formatLKR(totalAmount)}</h2>
             </div>
           </div>
           <div className="text-xs text-slate-400 font-medium">
@@ -172,7 +172,7 @@ export const Expenses: React.FC = () => {
 
           <Input 
             required 
-            label="Expense Description *" 
+            label="Expense Description" 
             value={description} 
             onChange={(e) => setDescription(e.target.value)} 
             placeholder="e.g. Monthly Electricity Bill (CEB)"
@@ -183,7 +183,7 @@ export const Expenses: React.FC = () => {
             type="number" 
             min="0.01" 
             step="0.01" 
-            label="Amount (LKR) *" 
+            label="Amount (LKR)" 
             value={amount} 
             onChange={(e) => setAmount(e.target.value)} 
             placeholder="e.g. 7500.00"

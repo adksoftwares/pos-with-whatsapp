@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -46,16 +46,24 @@ export const ProductList = () => {
   const [stockReason, setStockReason] = useState('Stock count correction');
   const { subscription, refresh: refreshSub } = useSubscription();
 
-  const fetchProducts = async () => {
+  const isFirstMount = useRef(true);
+
+  const fetchProducts = async (pageToFetch = page) => {
     setIsLoading(true);
     try {
       const res = await apiClient.get('/products', {
-        params: { page, limit: 10, search, status: statusFilter || undefined, expiryStatus: expiryFilter || undefined }
+        params: { 
+          page: pageToFetch, 
+          limit: 10, 
+          search: search.trim() || undefined, 
+          status: statusFilter || undefined, 
+          expiryStatus: expiryFilter || undefined 
+        }
       });
       setProducts(res.data.products);
       setTotalPages(res.data.pagination.totalPages);
     } catch (error: any) {
-      toast.error('Failed to load products');
+      toast.error('Failed to load products', { id: 'products-error' });
     } finally {
       setIsLoading(false);
     }
@@ -64,15 +72,22 @@ export const ProductList = () => {
   useEffect(() => { apiClient.get('/products/stock-value').then((r:any)=>setStockValue(r.data)).catch(()=>{}); }, []);
 
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
-      setPage(1);
-      fetchProducts();
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        fetchProducts(1);
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [search, statusFilter, expiryFilter]);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(page);
   }, [page]);
 
   const toggleStatus = async (id: string, currentStatus: string) => {

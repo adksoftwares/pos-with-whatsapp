@@ -77,8 +77,8 @@ export const Login = () => {
               <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                 <Crown size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 leading-none truncate">Store Owner</p>
+              <div className="min-w-0 pb-0.5">
+                <p className="text-xs font-bold text-slate-800 leading-snug truncate">Store Owner</p>
                 <p className="text-[10px] text-slate-400 mt-0.5 truncate">Full Permissions</p>
               </div>
             </button>
@@ -91,8 +91,8 @@ export const Login = () => {
               <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                 <Briefcase size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 leading-none truncate">Store Manager</p>
+              <div className="min-w-0 pb-0.5">
+                <p className="text-xs font-bold text-slate-800 leading-snug truncate">Store Manager</p>
                 <p className="text-[10px] text-slate-400 mt-0.5 truncate">Ops & Inventory</p>
               </div>
             </button>
@@ -105,8 +105,8 @@ export const Login = () => {
               <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                 <CreditCard size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 leading-none truncate">Cashier (Counter)</p>
+              <div className="min-w-0 pb-0.5">
+                <p className="text-xs font-bold text-slate-800 leading-snug truncate">Cashier (Counter)</p>
                 <p className="text-[10px] text-slate-400 mt-0.5 truncate">POS & Shifts</p>
               </div>
             </button>
@@ -119,8 +119,8 @@ export const Login = () => {
               <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                 <Shield size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 leading-none truncate">Super Admin</p>
+              <div className="min-w-0 pb-0.5">
+                <p className="text-xs font-bold text-slate-800 leading-snug truncate">Super Admin</p>
                 <p className="text-[10px] text-slate-400 mt-0.5 truncate">Platform SaaS</p>
               </div>
             </button>

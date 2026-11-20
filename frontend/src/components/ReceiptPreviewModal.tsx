@@ -192,15 +192,19 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
 
       const tableData: any[] = [];
       const itemsByCompany = invoice.items.reduce((acc: any, item: any) => {
-        if (!acc[item.companyName]) acc[item.companyName] = [];
-        acc[item.companyName].push(item);
+        const comp = item.companyName && item.companyName !== 'Uncategorized' ? item.companyName : 'Store Items';
+        if (!acc[comp]) acc[comp] = [];
+        acc[comp].push(item);
         return acc;
       }, {});
 
-      Object.keys(itemsByCompany).forEach((company) => {
-        tableData.push([
-          { content: company, colSpan: 4, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', textColor: [0, 0, 0], cellPadding: 1 } }
-        ]);
+      const companyKeys = Object.keys(itemsByCompany);
+      companyKeys.forEach((company) => {
+        if (companyKeys.length > 1) {
+          tableData.push([
+            { content: company, colSpan: 4, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', textColor: [0, 0, 0], cellPadding: 1 } }
+          ]);
+        }
         itemsByCompany[company].forEach((item: any) => {
           let name = item.productName;
           if (item.weight) name += ` (${item.weight})`;
@@ -350,7 +354,7 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
         <div className="flex flex-col h-fit my-auto items-center thermal-print-wrapper">
           
           {/* Action buttons (hidden when printing) */}
-          <div className="bg-white rounded-t-lg shadow-xl p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden w-full max-w-lg mb-4">
+          <div className="bg-white rounded-t-lg shadow-xl p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden w-full max-w-xl mb-4">
             <h2 className="text-lg font-bold text-gray-900 flex items-center">
               <Receipt className="w-5 h-5 mr-2" /> Receipt
             </h2>
@@ -446,17 +450,20 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
                   <tbody>
                     {Object.entries(
                       invoice.items?.reduce((acc: any, item: any) => {
-                        if (!acc[item.companyName]) acc[item.companyName] = [];
-                        acc[item.companyName].push(item);
+                        const comp = item.companyName && item.companyName !== 'Uncategorized' ? item.companyName : 'Store Items';
+                        if (!acc[comp]) acc[comp] = [];
+                        acc[comp].push(item);
                         return acc;
                       }, {}) || {}
-                    ).map(([company, items]: [string, any]) => (
+                    ).map(([company, items]: [string, any], _, allGroups) => (
                       <React.Fragment key={company}>
-                        <tr>
-                          <td colSpan={4} style={{ padding: '3px 0 1px 0', fontWeight: 'bold', fontSize: fSize.tiny, borderBottom: '1px solid #eee' }}>
-                            {company}
-                          </td>
-                        </tr>
+                        {allGroups.length > 1 && (
+                          <tr>
+                            <td colSpan={4} style={{ padding: '3px 0 1px 0', fontWeight: 'bold', fontSize: fSize.tiny, borderBottom: '1px solid #eee' }}>
+                              {company}
+                            </td>
+                          </tr>
+                        )}
                         {items.map((item: any) => (
                           <tr key={item.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                             <td style={{ padding: '2px 2px 2px 0', verticalAlign: 'top', wordBreak: 'break-word' }}>

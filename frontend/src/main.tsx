@@ -16,7 +16,20 @@ createRoot(document.getElementById('root')!).render(
       <SubscriptionProvider>
         <NetworkProvider>
           <App />
-          <Toaster position="top-right" />
+          <Toaster 
+            position="bottom-right" 
+            toastOptions={{ 
+              duration: 3500,
+              style: { 
+                borderRadius: '10px', 
+                background: '#0f172a', 
+                color: '#f8fafc', 
+                fontSize: '13px', 
+                fontWeight: 500,
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)' 
+              } 
+            }} 
+          />
         </NetworkProvider>
       </SubscriptionProvider>
     </AuthProvider>

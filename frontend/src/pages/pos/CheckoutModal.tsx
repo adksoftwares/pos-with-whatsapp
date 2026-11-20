@@ -3,7 +3,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { CheckCircle, CreditCard, Banknote, QrCode, Landmark } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { formatLKR } from '../../utils/currency';
 import toast from 'react-hot-toast';
@@ -296,7 +296,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                 }`}
               >
-                <div className="font-bold text-lg leading-none mt-1">G</div>
+                <Landmark size={24} />
                 <span className="font-medium text-sm">Bank Transfer</span>
               </button>
 
