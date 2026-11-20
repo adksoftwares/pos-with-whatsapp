@@ -1,9 +1,265 @@
-import{useEffect,useState}from'react';import{Plus,Search,Users,Pencil,Trash2}from'lucide-react';import toast from'react-hot-toast';import{apiClient}from'../api/client';import{Card,CardContent}from'../components/ui/Card';import{Button}from'../components/ui/Button';import{Input}from'../components/ui/Input';import{Modal}from'../components/ui/Modal';import{LoadingState}from'../components/ui/LoadingState';import{EmptyState}from'../components/ui/EmptyState';
-type Customer={id:string;name:string;phone?:string|null;email?:string|null;address?:string|null;notes?:string|null;loyaltyPoints:number;totalSpent:number};
-const blank={name:'',phone:'',email:'',address:'',notes:''};
-export const Customers=()=>{const[rows,R]=useState<Customer[]>([]),[q,Q]=useState(''),[loading,L]=useState(true),[open,O]=useState(false),[editing,Ed]=useState<Customer|null>(null),[form,F]=useState(blank);
-const load=async()=>{L(true);try{{const d=(await apiClient.get('/customers',{params:{search:q,limit:100}})).data;R(Array.isArray(d)?d:(d.customers||[]))}}catch{toast.error('Could not load customers')}finally{L(false)}};useEffect(()=>{const t=setTimeout(load,250);return()=>clearTimeout(t)},[q]);
-const start=(c?:Customer)=>{Ed(c||null);F(c?{name:c.name,phone:c.phone||'',email:c.email||'',address:c.address||'',notes:c.notes||''}:blank);O(true)};
-const save=async(e:React.FormEvent)=>{e.preventDefault();try{if(editing)await apiClient.patch('/customers/'+editing.id,form);else await apiClient.post('/customers',form);toast.success(editing?'Customer updated':'Customer added');O(false);load()}catch(x:any){toast.error(x.message||'Save failed')}};
-const remove=async(id:string)=>{if(!confirm('Delete this customer profile?'))return;try{await apiClient.delete('/customers/'+id);toast.success('Customer deleted');load()}catch(x:any){toast.error(x.message||'Delete failed')}};
-return <div className="space-y-5"><header className="flex flex-wrap justify-between gap-3"><div><h1 className="text-2xl font-bold">Customers</h1><p className="text-sm text-gray-500">Customer profiles, loyalty and lifetime spend</p></div><Button onClick={()=>start()} leftIcon={<Plus size={16}/>}>Add customer</Button></header><Card><CardContent className="p-4"><Input value={q} onChange={e=>Q(e.target.value)} placeholder="Search name, phone or email" leftIcon={<Search size={16}/>}/></CardContent></Card>{loading?<LoadingState/>:rows.length===0?<EmptyState icon={Users} title="No customers" description="Add customers to build a customer directory." actionLabel="Add customer" onAction={()=>start()}/>:<div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">{rows.map(c=><Card key={c.id}><CardContent className="p-4"><div className="flex justify-between gap-2"><b className="truncate">{c.name}</b><div className="flex gap-1"><button onClick={()=>start(c)} className="p-1 text-blue-600" aria-label="Edit"><Pencil size={16}/></button><button onClick={()=>remove(c.id)} className="p-1 text-red-600" aria-label="Delete"><Trash2 size={16}/></button></div></div><p className="text-sm text-gray-500 mt-2">{c.phone||'No phone'} · {c.email||'No email'}</p><p className="text-xs mt-2">{c.address||'Address not set'}</p><div className="border-t mt-4 pt-3 text-xs flex justify-between"><span>{c.loyaltyPoints||0} points</span><b>LKR {Number(c.totalSpent||0).toLocaleString('en-LK',{minimumFractionDigits:2})}</b></div></CardContent></Card>)}</div>}<Modal isOpen={open} onClose={()=>O(false)} title={editing?'Edit customer':'Add customer'}><form onSubmit={save} className="space-y-3"><Input required value={form.name} onChange={e=>F({...form,name:e.target.value})} placeholder="Full name"/><Input value={form.phone} onChange={e=>F({...form,phone:e.target.value})} placeholder="Phone (+94…)"/><Input type="email" value={form.email} onChange={e=>F({...form,email:e.target.value})} placeholder="Email"/><Input value={form.address} onChange={e=>F({...form,address:e.target.value})} placeholder="Address"/><textarea className="w-full border rounded-lg p-3 text-sm" value={form.notes} onChange={e=>F({...form,notes:e.target.value})} placeholder="Notes" rows={3}/><div className="flex justify-end gap-2"><Button variant="secondary" type="button" onClick={()=>O(false)}>Cancel</Button><Button type="submit">Save customer</Button></div></form></Modal></div>};
+import React, { useEffect, useState } from 'react';
+import { Plus, Search, Users, Pencil, Trash2, Phone, Mail, MapPin, Award } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiClient } from '../api/client';
+import { Card, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
+import { LoadingState } from '../components/ui/LoadingState';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatLKR } from '../utils/currency';
+
+interface Customer {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  loyaltyPoints: number;
+  totalSpent: number;
+}
+
+const blankForm = {
+  name: '',
+  phone: '',
+  email: '',
+  address: '',
+  notes: ''
+};
+
+export const Customers: React.FC = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [formData, setFormData] = useState(blankForm);
+
+  const loadCustomers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiClient.get('/customers', {
+        params: { search, limit: 100 }
+      });
+      const data = res.data;
+      setCustomers(Array.isArray(data) ? data : (data.customers || []));
+    } catch {
+      toast.error('Could not load customers');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(loadCustomers, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleOpenModal = (customer?: Customer) => {
+    if (customer) {
+      setEditingCustomer(customer);
+      setFormData({
+        name: customer.name,
+        phone: customer.phone || '',
+        email: customer.email || '',
+        address: customer.address || '',
+        notes: customer.notes || ''
+      });
+    } else {
+      setEditingCustomer(null);
+      setFormData(blankForm);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingCustomer) {
+        await apiClient.patch(`/customers/${editingCustomer.id}`, formData);
+        toast.success('Customer updated successfully');
+      } else {
+        await apiClient.post('/customers', formData);
+        toast.success('Customer created successfully');
+      }
+      setIsModalOpen(false);
+      loadCustomers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save customer');
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete customer profile for "${name}"?`)) return;
+    try {
+      await apiClient.delete(`/customers/${id}`);
+      toast.success('Customer deleted');
+      loadCustomers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete customer');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Customers & Loyalty</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage regular customer profiles, store credit, and rewards</p>
+        </div>
+        <Button 
+          onClick={() => handleOpenModal()} 
+          className="bg-blue-600 hover:bg-blue-700 shadow-sm flex items-center gap-2"
+        >
+          <Plus size={16} /> Add Customer
+        </Button>
+      </div>
+
+      {/* Search Bar */}
+      <Card className="border-slate-200/90 shadow-2xs bg-white rounded-2xl">
+        <CardContent className="p-3.5">
+          <Input 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Search by customer name, mobile number, or email..." 
+            leftIcon={<Search size={18} className="text-slate-400" />}
+            className="border-slate-200"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Customer Directory Grid */}
+      {isLoading ? (
+        <LoadingState />
+      ) : customers.length === 0 ? (
+        <EmptyState 
+          icon={Users} 
+          title="No customers found" 
+          description="Register customers to track lifetime value, purchase history, and issue loyalty discounts." 
+          actionLabel="Add Customer" 
+          onAction={() => handleOpenModal()} 
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {customers.map((c) => (
+            <Card key={c.id} className="border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all rounded-2xl bg-white flex flex-col justify-between">
+              <CardContent className="p-5">
+                
+                {/* Name & Actions */}
+                <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base leading-snug">{c.name}</h3>
+                    <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Award size={12} className="text-amber-600" />
+                      <span>{c.loyaltyPoints || 0} Loyalty Pts</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={() => handleOpenModal(c)} 
+                      className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit Customer"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(c.id, c.name)} 
+                      className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Delete Customer"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="space-y-2 py-3 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} className="text-slate-400 shrink-0" />
+                    <span>{c.phone ? <a href={`tel:${c.phone}`} className="hover:text-blue-600">{c.phone}</a> : <span className="text-slate-400 italic">No phone</span>}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail size={14} className="text-slate-400 shrink-0" />
+                    <span className="truncate">{c.email ? <a href={`mailto:${c.email}`} className="hover:text-blue-600">{c.email}</a> : <span className="text-slate-400 italic">No email</span>}</span>
+                  </div>
+                  {c.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{c.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lifetime Value Metric */}
+                <div className="mt-2 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Total Lifetime Spend</span>
+                  <span className="font-bold text-slate-900 text-sm">{formatLKR(c.totalSpent || 0)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add / Edit Customer Modal */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title={editingCustomer ? "Edit Customer Details" : "Register New Customer"}
+      >
+        <form onSubmit={handleSave} className="space-y-4 pt-2">
+          <Input 
+            required 
+            label="Full Name *" 
+            value={formData.name} 
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+            placeholder="e.g. Kumaranathan K."
+          />
+          <Input 
+            label="Mobile Phone Number" 
+            value={formData.phone} 
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+            placeholder="e.g. 077 123 4567"
+          />
+          <Input 
+            type="email" 
+            label="Email Address" 
+            value={formData.email} 
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+            placeholder="e.g. customer@gmail.com"
+          />
+          <Input 
+            label="Delivery / Residential Address" 
+            value={formData.address} 
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
+            placeholder="e.g. 142 Main Street, Batticaloa"
+          />
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Notes / Preferences</label>
+            <textarea 
+              className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              value={formData.notes} 
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+              placeholder="e.g. Preferred delivery time, credit limit, special requests" 
+              rows={3}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Button variant="secondary" type="button" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              {editingCustomer ? 'Update Profile' : 'Save Customer'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+    </div>
+  );
+};

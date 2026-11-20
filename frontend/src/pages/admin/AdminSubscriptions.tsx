@@ -18,21 +18,6 @@ export const AdminSubscriptions: React.FC = () => {
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
 
-  // Security: check super admin on frontend for UX only
-  // Backend enforces this authoritatively
-  if (!(user as any)?.isSuperAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <p className="text-gray-500 text-lg">Access Denied</p>
-        <p className="text-gray-400 text-sm">Super Admin access required.</p>
-      </div>
-    );
-  }
-
-  // ── hooks must not be called conditionally, so everything below is safe ──
-  // (The early return above only fires if !isSuperAdmin, the hooks are above it
-  //  but React rules require this placement — we keep the data fetching in useEffect)
-
   const fetchBusinesses = async () => {
     setIsLoading(true);
     try {
@@ -47,11 +32,22 @@ export const AdminSubscriptions: React.FC = () => {
     }
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    fetchBusinesses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+    if ((user as any)?.isSuperAdmin) {
+      fetchBusinesses();
+    }
+  }, [search, (user as any)?.isSuperAdmin]);
+
+  // Security: check super admin on frontend for UX only
+  // Backend enforces this authoritatively
+  if (!(user as any)?.isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-gray-500 text-lg">Access Denied</p>
+        <p className="text-gray-400 text-sm">Super Admin access required.</p>
+      </div>
+    );
+  }
 
   const loadDetail = async (businessId: string) => {
     try {

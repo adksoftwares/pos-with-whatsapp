@@ -36,7 +36,11 @@ export async function ensurePostgres() {
       databaseDir: dbDir,
       persistent: true
     });
-    await ep.initialise();
+    const fs = require('fs');
+    const isAlreadyInitialized = fs.existsSync(path.join(dbDir, 'PG_VERSION'));
+    if (!isAlreadyInitialized) {
+      await ep.initialise();
+    }
     await ep.start();
     try {
       await ep.createDatabase('pos_db');
