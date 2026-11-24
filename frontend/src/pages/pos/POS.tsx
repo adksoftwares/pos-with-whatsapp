@@ -15,7 +15,7 @@ import { ReceiptPreviewModal } from '../../components/ReceiptPreviewModal';
 import { useNetwork } from '../../state/NetworkContext';
 import { db } from '../../db/offlineDb';
 import { useAuth } from '../../state/AuthContext';
-import { DEMO_CATEGORIES, seedDemoDataToDexie } from '../../utils/offlineDemoSeed';
+import { seedDemoDataToDexie } from '../../utils/offlineDemoSeed';
 
 interface Product {
   id: string;
@@ -71,19 +71,12 @@ export const POS = () => {
     }
   });
 
-  // POS Mode: 'SUPERMARKET' (Food City Table Grid) or 'CATALOG' (Touch Tiles)
-  const [posMode, setPosMode] = useState<'SUPERMARKET' | 'CATALOG'>(() => {
-    return (localStorage.getItem('pos_view_mode') as any) || 'SUPERMARKET';
-  });
-
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [catalog, setCatalog] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   
   const [discount, setDiscount] = useState<number>(() => {
     const saved = localStorage.getItem('pos_draft_discount');
@@ -103,12 +96,8 @@ export const POS = () => {
   useEffect(() => {
     const loadCatalog = async () => {
       try {
-        const [pRes, cRes] = await Promise.all([
-          apiClient.get('/products', { params: { limit: 50, status: 'ACTIVE' } }),
-          apiClient.get('/categories')
-        ]);
+        const pRes = await apiClient.get('/products', { params: { limit: 50, status: 'ACTIVE' } });
         setCatalog(pRes.data?.products || []);
-        setCategories(cRes.data || []);
       } catch (err) {
         if (activeBusiness) {
           let offlineProds = await db.products
@@ -123,7 +112,6 @@ export const POS = () => {
               .toArray();
           }
           setCatalog(offlineProds);
-          setCategories(DEMO_CATEGORIES);
         }
       }
     };
@@ -139,10 +127,6 @@ export const POS = () => {
   useEffect(() => {
     localStorage.setItem('pos_held_bills', JSON.stringify(heldBills));
   }, [heldBills]);
-
-  useEffect(() => {
-    localStorage.setItem('pos_view_mode', posMode);
-  }, [posMode]);
 
   // Keyboard shortcuts: Ctrl+K (search), Ctrl+H (hold bill), Ctrl+R (recall bills), F12 (checkout)
   useEffect(() => {
@@ -673,7 +657,7 @@ export const POS = () => {
               </div>
               <div className="col-span-2 lg:col-span-1">
                 <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Scan barcode / search product</label>
-                <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+                <form onSubmit={handleBarcodeSubmit} aria-busy={isSearching} className="flex gap-2">
                   <div className="relative flex-1 min-w-0">
                     <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input ref={searchInputRef} value={searchInput} onChange={e => setSearchInput(e.target.value)} autoComplete="off" placeholder="Scan barcode or type product name..." className="h-10 w-full pl-9 pr-3 border-2 border-blue-700 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-200" />
@@ -736,7 +720,7 @@ export const POS = () => {
               <div className="border-t border-slate-200 bg-slate-50 px-3 py-2 flex items-center gap-2 overflow-x-auto shrink-0">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 shrink-0">Quick add</span>
                 {catalog.slice(0,6).map(prod => <button type="button" key={prod.id} onClick={() => handleAddToCart(prod)} className="shrink-0 px-3 py-1.5 rounded border border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 text-xs font-semibold">{prod.name.split(' ').slice(0,2).join(' ')} <span className="text-slate-400 font-normal">{formatLKR(prod.sellingPrice)}</span></button>)}
-                <button type="button" onClick={() => setPosMode(posMode === 'SUPERMARKET' ? 'CATALOG' : 'SUPERMARKET')} className="ml-auto shrink-0 px-3 py-1.5 rounded bg-slate-200 text-xs font-bold">{posMode === 'SUPERMARKET' ? 'Product tiles' : 'Back to bill'}</button>
+                
               </div>
             </div>
 
