@@ -16,6 +16,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   cartItems: any[];
   orderDiscount: number;
+  initialAmountTendered?: string;
   onSuccess: (orderData: any) => void;
 }
 
@@ -24,6 +25,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose, 
   cartItems, 
   orderDiscount,
+  initialAmountTendered = '',
   onSuccess
 }) => {
   const [step, setStep] = useState<'VALIDATING' | 'PAYMENT' | 'SUCCESS'>('VALIDATING');
@@ -45,10 +47,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (isOpen) {
       setStep('VALIDATING');
       setCustomerId('');
+      setAmountTendered(initialAmountTendered);
+      setIsProcessing(false);
       if(isOnline) apiClient.get('/customers',{params:{limit:100}}).then((r:any)=>setCustomers(r.data||[])).catch(()=>setCustomers([]));
       validateCart();
     }
-  }, [isOpen]);
+  }, [isOpen, initialAmountTendered]);
 
   const validateCart = async () => {
     try {
