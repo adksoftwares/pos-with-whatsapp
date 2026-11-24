@@ -512,73 +512,114 @@ export const POS = () => {
         />
       )}
 
-      {/* Held Bills (Recall) Modal */}
+      {/* Held Bills (Recall) Modal - Human-crafted UI/UX */}
       {isRecallModalOpen && (
         <Modal
           isOpen={isRecallModalOpen}
           onClose={() => setIsRecallModalOpen(false)}
-          title={`Parked / Held Bills (${heldBills.length})`}
+          title={`Parked Transactions (${heldBills.length})`}
+          maxWidth="xl"
         >
           <div className="space-y-4">
-            <p className="text-xs text-slate-500">
-              Select any suspended transaction to recall it back into the billing counter.
-            </p>
+            <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 px-3.5 py-2.5 rounded-xl border border-slate-200/80">
+              <span className="flex items-center gap-2 font-medium text-slate-600">
+                <Clock size={15} className="text-amber-600 shrink-0" />
+                <span>Parked bills are saved locally. You can resume any customer's bill or discard it anytime.</span>
+              </span>
+            </div>
 
             {heldBills.length === 0 ? (
-              <div className="py-12 text-center text-slate-400">
-                <Clock size={48} className="mx-auto mb-2 opacity-40" />
-                <p className="font-semibold text-slate-600">No held bills in queue</p>
-                <p className="text-xs text-slate-400 mt-1">Use "Hold Bill" to park a customer's cart when they step away.</p>
+              <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+                  <PauseCircle size={28} />
+                </div>
+                <p className="font-bold text-slate-700 text-sm">No parked bills in queue</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                  When a customer steps away to grab more items, click <strong className="text-amber-700 font-semibold">Hold Bill</strong> to free up the counter.
+                </p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                 {heldBills.map((bill) => (
                   <div 
                     key={bill.id}
-                    className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-blue-400 hover:shadow-sm transition-all flex items-center justify-between gap-3"
+                    className="p-4 bg-white border border-slate-200 hover:border-blue-400 rounded-2xl shadow-xs hover:shadow-sm transition-all flex flex-col gap-3 group"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-blue-700 text-sm tracking-tight">{bill.billNumber}</span>
-                        <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-                          <Clock size={11} /> {new Date(bill.heldAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {/* Top Row: Bill Reference, Timestamp, Item Count, and Grand Total */}
+                    <div className="flex items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs px-2.5 py-1 rounded-lg tracking-wide uppercase shadow-2xs whitespace-nowrap">
+                          {bill.billNumber}
                         </span>
-                        <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
+                        <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
+                          <Clock size={12} className="text-slate-400" />
+                          <span>{new Date(bill.heldAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </span>
+                        <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
                           {bill.totalItems} {bill.totalItems === 1 ? 'item' : 'items'}
-                        </Badge>
+                        </span>
                       </div>
-                      <p className="text-xs text-slate-600 truncate mt-1">
-                        {bill.items.map(it => `${it.name} (${it.quantity})`).join(', ')}
-                      </p>
+
+                      {/* Total Amount Due */}
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Due</span>
+                        <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight whitespace-nowrap">
+                          {formatLKR(bill.total)}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <span className="text-sm font-extrabold text-slate-900 block">{formatLKR(bill.total)}</span>
+                    {/* Middle: Clean Item Breakdown Chips */}
+                    <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-100 text-xs">
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {bill.items.map((it, idx) => (
+                          <span 
+                            key={idx} 
+                            className="bg-white border border-slate-200/90 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-800 flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <span className="text-slate-900 font-semibold">{it.name}</span>
+                            <span className="bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded text-[10px] font-black">×{it.quantity}</span>
+                          </span>
+                        ))}
                       </div>
-                      <Button 
-                        size="sm" 
-                        variant="primary"
-                        onClick={() => handleRecallBill(bill)}
-                        className="gap-1 font-bold text-xs"
-                      >
-                        <PlayCircle size={14} /> Resume
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHeldBill(bill.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Discard held bill"
-                      >
-                        <Trash2 size={16} />
-                      </button>
                     </div>
+
+                    {/* Bottom Action Footer */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                        Click Resume to restore to active billing counter
+                      </span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHeldBill(bill.id)}
+                          className="px-3 py-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="Discard held bill"
+                        >
+                          <Trash2 size={14} />
+                          <span>Discard</span>
+                        </button>
+
+                        <button 
+                          type="button"
+                          onClick={() => handleRecallBill(bill)}
+                          className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                        >
+                          <PlayCircle size={15} />
+                          <span>Resume Bill</span>
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">
+                {heldBills.length} {heldBills.length === 1 ? 'transaction' : 'transactions'} suspended
+              </span>
               <Button variant="secondary" onClick={() => setIsRecallModalOpen(false)}>
                 Close
               </Button>
@@ -693,7 +734,7 @@ export const POS = () => {
                 <PlayCircle size={16} className={heldBills.length > 0 ? "text-blue-600" : "text-slate-400"} />
                 <span>Held Bills</span>
                 {heldBills.length > 0 && (
-                  <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black animate-pulse">
+                  <span className="bg-blue-600 text-white rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[10px] font-black shadow-2xs">
                     {heldBills.length}
                   </span>
                 )}
