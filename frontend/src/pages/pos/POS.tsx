@@ -474,6 +474,7 @@ export const POS = () => {
           onClose={() => setIsCheckingOut(false)}
           cartItems={cart}
           orderDiscount={totals.orderDiscount}
+          initialAmountTendered={cashTendered}
           onSuccess={handleCheckoutSuccess}
         />
       )}
