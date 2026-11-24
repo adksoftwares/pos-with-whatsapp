@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/Button';
 import { 
   ScanLine, Search, Plus, Minus, Trash2, ShoppingCart, 
   PauseCircle, PlayCircle, Clock, 
-  CreditCard, Sparkles
+  CreditCard
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { formatLKR } from '../../utils/currency';
@@ -736,7 +736,7 @@ export const POS = () => {
                       </div></td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatLKR(item.sellingPrice)}</td>
                       <td className="px-3 py-3 text-right tabular-nums text-slate-500">{formatLKR(item.lineDiscount)}</td>
-                      <td className="px-3 py-3 text-right font-bold tabular-nums">{formatLKR(item.lineSubtotal)}</td>
+                      <td className="px-3 py-3 text-right font-bold tabular-nums">{formatLKR(Math.max(0, Number(item.sellingPrice) * Number(item.quantity) - Number(item.lineDiscount)))}</td>
                       <td className="px-3 py-3"><button type="button" onClick={() => removeFromCart(item.cartItemId)} title="Remove item" className="text-rose-500 hover:bg-rose-50 rounded p-1"><Trash2 size={15}/></button></td>
                     </tr>)}
                   </tbody>
@@ -769,10 +769,10 @@ export const POS = () => {
                 <div className="flex justify-between"><span className="text-slate-500">Total quantity</span><strong>{totals.totalItems}</strong></div>
                 <div className="flex justify-between"><span className="text-slate-500">Sub total</span><strong>{formatLKR(totals.subtotal)}</strong></div>
                 <div className="flex justify-between items-center gap-3"><label htmlFor="order-discount" className="text-slate-500">Discount</label><div className="flex items-center gap-1"><span className="text-xs text-slate-400">LKR</span><input id="order-discount" type="number" min="0" value={discount || ''} onChange={e => setDiscount(Math.min(totals.subtotal,Math.max(0,parseFloat(e.target.value)||0)))} placeholder="0.00" className="w-28 text-right border border-slate-200 rounded px-2 py-1.5 text-sm font-semibold"/></div></div>
-                <div className="flex justify-between text-slate-500"><span>Tax / VAT</span><span>{formatLKR(0)}</span></div>
+                <div className="flex justify-between text-slate-500"><span>Tax / VAT</span><span className="text-[11px] font-medium">Confirmed at checkout</span></div>
               </div>
               <div className="rounded-lg bg-[#123b70] text-white p-4 shadow-inner">
-                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.15em] text-blue-200 font-bold"><span>Grand total</span><span>LKR</span></div>
+                <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.15em] text-blue-200 font-bold"><span>Estimated total · before final tax</span><span>LKR</span></div>
                 <div className="mt-2 text-3xl 2xl:text-4xl font-black tracking-tight tabular-nums break-words">{formatLKR(totals.total)}</div>
               </div>
               <div className="border border-slate-200 rounded-lg p-3 space-y-3">
@@ -781,7 +781,7 @@ export const POS = () => {
                   {['Exact','500','1000','5000'].map((amount,i) => <button key={amount} type="button" onClick={() => setCashTendered(i===0 ? totals.total.toString() : amount)} className="py-2 rounded border border-slate-200 bg-slate-50 hover:bg-blue-50 text-[11px] font-bold">{i===0 ? 'Exact' : Number(amount).toLocaleString()}</button>)}
                 </div>
                 <div className={`rounded-md px-3 py-3 flex items-center justify-between ${parsedTendered >= totals.total && parsedTendered > 0 ? 'bg-emerald-50 text-emerald-800' : parsedTendered > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-500'}`}>
-                  <span className="text-xs font-bold">{parsedTendered >= totals.total ? 'Change' : parsedTendered > 0 ? 'Amount short' : 'Change due'}</span>
+                  <span className="text-xs font-bold">{parsedTendered >= totals.total ? 'Estimated change' : parsedTendered > 0 ? 'Amount short' : 'Change due'}</span>
                   <strong className="text-lg tabular-nums">{formatLKR(Math.abs(changeDue))}</strong>
                 </div>
               </div>
