@@ -95,50 +95,74 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-              <TrendingUp size={24} />
+        {/* Today's Sales */}
+        <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
+          <CardContent className="p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Today's Sales</span>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
+                <TrendingUp size={20} />
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Today's Sales</p>
-              <h4 className="text-2xl font-bold text-gray-900 mt-1">{formatLKR(summary.todaySales)}</h4>
+            <div className="mt-3">
+              <h4 className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                {formatLKR(summary.todaySales)}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium mt-1">Live store revenue</p>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-green-100 text-green-600">
-              <ShoppingCart size={24} />
+        {/* Orders Today */}
+        <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
+          <CardContent className="p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders Today</span>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-xs">
+                <ShoppingCart size={20} />
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Orders Today</p>
-              <h4 className="text-2xl font-bold text-gray-900 mt-1">{summary.todayOrders}</h4>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-purple-100 text-purple-600">
-              <Package size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Items Sold Today</p>
-              <h4 className="text-2xl font-bold text-gray-900 mt-1">{summary.todayItemsSold}</h4>
+            <div className="mt-3">
+              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+                {summary.todayOrders}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium mt-1">Completed bills</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 rounded-full bg-orange-100 text-orange-600">
-              <Activity size={24} />
+        {/* Items Sold Today */}
+        <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
+          <CardContent className="p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Sold</span>
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-xs">
+                <Package size={20} />
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Average Order Value</p>
-              <h4 className="text-2xl font-bold text-gray-900 mt-1">{formatLKR(summary.averageOrderValue)}</h4>
+            <div className="mt-3">
+              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+                {summary.todayItemsSold}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium mt-1">Checked out units</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Average Order Value */}
+        <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
+          <CardContent className="p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Order Value</span>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-xs">
+                <Activity size={20} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <h4 className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                {formatLKR(summary.averageOrderValue)}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium mt-1">Per transaction average</p>
             </div>
           </CardContent>
         </Card>
