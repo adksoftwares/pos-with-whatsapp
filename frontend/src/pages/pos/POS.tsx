@@ -1007,7 +1007,7 @@ export const POS = () => {
       </div>
 
       {/* --- RIGHT COLUMN: SUPERMARKET CHECKOUT STATION --- */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-[55%] lg:h-full flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-lg z-20">
+      <aside className="w-full h-[52%] min-h-[300px] lg:h-full lg:min-h-0 lg:w-[clamp(400px,36vw,560px)] xl:w-[clamp(440px,37vw,580px)] 2xl:w-[600px] flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-lg z-20 min-w-0">
         
         {/* Bill Counter Header */}
         <div className="p-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
@@ -1165,7 +1165,7 @@ export const POS = () => {
 
         </div>
 
-      </div>
+      </aside>
 
     </div>
   );
