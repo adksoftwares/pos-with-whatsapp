@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { 
-  ScanLine, Search, Plus, Minus, Trash2, X, ShoppingCart, 
-  PauseCircle, PlayCircle, Clock, Store, Grid, 
+  ScanLine, Search, Plus, Minus, Trash2, ShoppingCart, 
+  PauseCircle, PlayCircle, Clock, 
   CreditCard, Sparkles
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
