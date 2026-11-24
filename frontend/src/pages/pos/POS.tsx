@@ -474,7 +474,7 @@ export const POS = () => {
   const changeDue = parsedTendered > 0 ? parsedTendered - totals.total : 0;
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-slate-100 overflow-hidden w-full select-none font-sans">
+    <>
       
       {/* Modals */}
       {completedOrderId && (
@@ -790,5 +790,6 @@ export const POS = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
