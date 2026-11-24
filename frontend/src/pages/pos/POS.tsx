@@ -131,6 +131,13 @@ export const POS = () => {
   // Keyboard shortcuts: Ctrl+K (search), Ctrl+H (hold bill), Ctrl+R (recall bills), F12 (checkout)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditing = !!target && (
+        target.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+      );
+      if (isEditing) return;
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         searchInputRef.current?.focus();
@@ -225,49 +232,60 @@ export const POS = () => {
     }
   };
 
-  // Immediate Enter key submit on barcode scanner input
-  const handleBarcodeSubmit = (e: React.FormEvent) => {
+  // Enter submits an exact barcode/SKU lookup; never select a stale search result.
+  const handleBarcodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const term = searchInput.trim();
-    if (!term) return;
+    if (!term || isSearching) return;
 
-    // Check exact barcode or SKU in catalog
-    const matched = catalog.find(
+    const localExact = catalog.find(
       p => (p.barcode && p.barcode.trim() === term) ||
-           (p.sku && p.sku.toLowerCase() === term.toLowerCase()) ||
-           p.name.toLowerCase() === term.toLowerCase()
+           (p.sku && p.sku.trim().toLowerCase() === term.toLowerCase()) ||
+           p.name.trim().toLowerCase() === term.toLowerCase()
     );
 
-    if (matched) {
-      handleAddToCart(matched);
-      setSearchInput('');
-      setSearchResults([]);
+    if (localExact) {
+      handleAddToCart(localExact);
       return;
     }
 
-    // If search results exist, pick first result
-    if (searchResults.length > 0) {
-      handleAddToCart(searchResults[0]);
-      setSearchInput('');
-      setSearchResults([]);
-      return;
+    setIsSearching(true);
+    try {
+      const res = await apiClient.get(`/products/barcode/${encodeURIComponent(term)}`);
+      const product = res.data?.data || res.data;
+      if (product?.id) {
+        handleAddToCart(product);
+        return;
+      }
+    } catch {
+      // Continue with a normal product search below.
     }
 
-    // Try API barcode search
-    apiClient.get(`/products/barcode/${encodeURIComponent(term)}`)
-      .then(res => {
-        const prod = res.data?.data || res.data;
-        if (prod) {
-          handleAddToCart(prod);
-          setSearchInput('');
-          setSearchResults([]);
-        } else {
-          toast.error(`No product found for code "${term}"`);
-        }
-      })
-      .catch(() => {
-        toast.error(`No product found for code "${term}"`);
+    try {
+      const res = await apiClient.get('/products', {
+        params: { search: term, limit: 8, status: 'ACTIVE' }
       });
+      const products: Product[] = res.data?.products || res.data?.data?.products || [];
+      const exact = products.find(
+        p => (p.barcode && p.barcode.trim() === term) ||
+             (p.sku && p.sku.trim().toLowerCase() === term.toLowerCase()) ||
+             p.name.trim().toLowerCase() === term.toLowerCase()
+      );
+      if (exact) {
+        handleAddToCart(exact);
+      } else if (products.length === 1) {
+        handleAddToCart(products[0]);
+      } else if (products.length > 1) {
+        setSearchResults(products);
+        toast('Select the correct product from the search results.');
+      } else {
+        toast.error(`No product found for "${term}"`);
+      }
+    } catch {
+      toast.error(`No product found for "${term}"`);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleScan = async (code: string) => {
