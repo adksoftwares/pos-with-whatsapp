@@ -632,13 +632,13 @@ export const POS = () => {
       <div className="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden relative">
         
         {/* Top Cashier Bar: Barcode search, Hold/Recall, Layout Toggle */}
-        <div className="bg-white border-b border-slate-200 px-4 py-2.5 shadow-xs shrink-0 z-20">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2.5 shadow-xs shrink-0 z-20">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             
-            {/* Fast Barcode & Item Search Form */}
-            <form onSubmit={handleBarcodeSubmit} className="flex-1 flex items-center gap-2 max-w-2xl">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-600">
+            {/* Fast Barcode & Item Search Form: Priority wide search field, never squashes */}
+            <form onSubmit={handleBarcodeSubmit} className="flex-1 min-w-[280px] sm:min-w-[340px] flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
                   {isSearching ? (
                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                   ) : (
@@ -652,7 +652,7 @@ export const POS = () => {
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Scan barcode or type item / SKU (Press Enter to add)..."
                   autoComplete="off"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-2xs"
+                  className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-2xs h-11"
                 />
                 {searchInput && (
                   <button 
@@ -694,7 +694,7 @@ export const POS = () => {
               <button
                 type="button"
                 onClick={() => setIsScannerOpen(true)}
-                className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shrink-0"
+                className="h-11 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-xl transition-colors shrink-0 flex items-center justify-center shadow-2xs"
                 title="Camera Scanner"
               >
                 <ScanLine size={19} />
@@ -702,7 +702,7 @@ export const POS = () => {
             </form>
 
             {/* Quick Action Toolbar */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
               
               {/* Hold Bill Button */}
               <button
