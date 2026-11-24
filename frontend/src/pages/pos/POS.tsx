@@ -772,7 +772,6 @@ export const POS = () => {
           </aside>
         </div>
       </div>
-    </div>
     </>
   );
 };
