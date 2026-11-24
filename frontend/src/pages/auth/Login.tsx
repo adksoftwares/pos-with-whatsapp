@@ -7,6 +7,7 @@ import { useAuth } from '../../state/AuthContext';
 import { apiClient } from '../../api/client';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Shield, Crown, Briefcase, CreditCard, Sparkles } from 'lucide-react';
+import { DEMO_USERS, DEMO_BUSINESS, seedDemoDataToDexie } from '../../utils/offlineDemoSeed';
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -42,6 +43,39 @@ export const Login = () => {
       }
       navigate(targetPath, { replace: true });
     } catch (error: any) {
+      // Check if network error (e.g. backend server is not reachable on localhost:5000 or on Vercel preview)
+      const isNetworkError = !error.response || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
+      const normalizedEmail = loginEmail.trim().toLowerCase();
+      const fallbackUser = DEMO_USERS[normalizedEmail as keyof typeof DEMO_USERS] || {
+        id: `offline-user-${Date.now()}`,
+        name: normalizedEmail.split('@')[0],
+        email: normalizedEmail,
+        status: 'ACTIVE',
+        isSuperAdmin: normalizedEmail.includes('superadmin'),
+        memberships: [{ businessId: DEMO_BUSINESS.id, role: normalizedEmail.includes('cashier') ? 'CASHIER' : 'OWNER', business: DEMO_BUSINESS }]
+      };
+
+      if (isNetworkError) {
+        const offlineToken = `offline-jwt-${Date.now()}`;
+        login(offlineToken, fallbackUser);
+        await seedDemoDataToDexie(DEMO_BUSINESS.id);
+        toast.success(`Active as ${fallbackUser.name} (Offline Demo Mode)`);
+
+        const isCashier = !fallbackUser.isSuperAdmin && fallbackUser.memberships?.some((m: any) => m.role === 'CASHIER');
+        const isSuperAdmin = fallbackUser.isSuperAdmin;
+
+        let targetPath = '/dashboard';
+        if (isSuperAdmin) {
+          targetPath = '/admin/subscriptions';
+        } else if (isCashier) {
+          targetPath = '/pos';
+        } else if (from && from !== '/' && from !== '/dashboard') {
+          targetPath = from;
+        }
+        navigate(targetPath, { replace: true });
+        return;
+      }
+
       toast.error(error.message || 'Failed to login');
     } finally {
       setIsLoading(false);

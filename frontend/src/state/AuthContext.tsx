@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const response = await apiClient.get('/auth/me');
         const fetchedUser = response.data.user;
         setUser(fetchedUser);
+        localStorage.setItem('cached_user', JSON.stringify(fetchedUser));
         
         // Auto-select first business if none selected
         if (!activeBusinessId && fetchedUser.memberships.length > 0) {
@@ -55,9 +56,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setActiveBusinessId(firstBusinessId);
           localStorage.setItem('activeBusinessId', firstBusinessId);
         }
-      } catch (error) {
-        console.error('Failed to restore session:', error);
-        logout();
+      } catch (error: any) {
+        console.warn('Could not verify session online:', error?.message);
+        // If 401 Unauthorized, token is definitely invalid
+        if (error.response?.status === 401) {
+          logout();
+        } else {
+          // If network error / offline, restore cached user
+          const cached = localStorage.getItem('cached_user');
+          if (cached) {
+            try {
+              const parsedUser = JSON.parse(cached);
+              setUser(parsedUser);
+              if (!activeBusinessId && parsedUser.memberships?.length > 0) {
+                setActiveBusinessId(parsedUser.memberships[0].businessId);
+              }
+            } catch {}
+          }
+        }
       } finally {
         setIsLoading(false);
       }
@@ -68,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
+    localStorage.setItem('cached_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
     
@@ -80,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('cached_user');
     localStorage.removeItem('activeBusinessId');
     setToken(null);
     setUser(null);

@@ -15,6 +15,8 @@ import { ProductFormModal } from './ProductFormModal';
 import { Modal } from '../../components/ui/Modal';
 import { ArrowLeftRight } from 'lucide-react';
 import { useSubscription } from '../../state/SubscriptionContext';
+import { db } from '../../db/offlineDb';
+import { seedDemoDataToDexie } from '../../utils/offlineDemoSeed';
 
 interface Product {
   id: string;
@@ -63,6 +65,19 @@ export const ProductList = () => {
       setProducts(res.data.products);
       setTotalPages(res.data.pagination.totalPages);
     } catch (error: any) {
+      // Resilient fallback to offline IndexedDB products if network fails
+      try {
+        let offline = await db.products.toArray();
+        if (offline.length === 0) {
+          await seedDemoDataToDexie();
+          offline = await db.products.toArray();
+        }
+        if (offline.length > 0) {
+          setProducts(offline as any);
+          setTotalPages(1);
+          return;
+        }
+      } catch {}
       toast.error('Failed to load products', { id: 'products-error' });
     } finally {
       setIsLoading(false);

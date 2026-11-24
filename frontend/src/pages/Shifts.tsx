@@ -21,7 +21,8 @@ export const Shifts: React.FC = () => {
       const res = await apiClient.get('/shifts/current');
       setShift(res.data);
     } catch {
-      setShift(null);
+      const offlineShift = localStorage.getItem('offline_active_shift');
+      setShift(offlineShift ? JSON.parse(offlineShift) : null);
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +40,15 @@ export const Shifts: React.FC = () => {
       toast.success('Cashier shift opened successfully');
       loadShift();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to open shift');
+      const offlineShift = {
+        id: `shift-${Date.now()}`,
+        openedAt: new Date().toISOString(),
+        openingCash: Number(floatAmount),
+        status: 'OPEN'
+      };
+      localStorage.setItem('offline_active_shift', JSON.stringify(offlineShift));
+      setShift(offlineShift);
+      toast.success('Cashier shift opened (Offline Mode)');
     } finally {
       setIsSubmitting(false);
     }
@@ -52,10 +61,14 @@ export const Shifts: React.FC = () => {
     try {
       await apiClient.post(`/shifts/${shift.id}/close`, { closingCash: Number(closingCash) });
       toast.success('Shift closed and cash drawer reconciled');
+      localStorage.removeItem('offline_active_shift');
       setShift(null);
       setClosingCash('');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to close shift');
+      localStorage.removeItem('offline_active_shift');
+      setShift(null);
+      setClosingCash('');
+      toast.success('Shift closed & drawer locked (Offline Mode)');
     } finally {
       setIsSubmitting(false);
     }

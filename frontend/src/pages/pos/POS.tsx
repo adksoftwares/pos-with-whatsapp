@@ -12,6 +12,7 @@ import { ReceiptPreviewModal } from '../../components/ReceiptPreviewModal';
 import { useNetwork } from '../../state/NetworkContext';
 import { db } from '../../db/offlineDb';
 import { useAuth } from '../../state/AuthContext';
+import { DEMO_CATEGORIES, seedDemoDataToDexie } from '../../utils/offlineDemoSeed';
 
 interface Product {
   id: string;
@@ -62,22 +63,30 @@ export const POS = () => {
   useEffect(() => {
     const loadCatalog = async () => {
       try {
-        if (isOnline) {
-          const [pRes, cRes] = await Promise.all([
-            apiClient.get('/products', { params: { limit: 50, status: 'ACTIVE' } }),
-            apiClient.get('/categories')
-          ]);
-          setCatalog(pRes.data?.products || []);
-          setCategories(cRes.data || []);
-        } else if (activeBusiness) {
-          const offlineProds = await db.products
+        const [pRes, cRes] = await Promise.all([
+          apiClient.get('/products', { params: { limit: 50, status: 'ACTIVE' } }),
+          apiClient.get('/categories')
+        ]);
+        setCatalog(pRes.data?.products || []);
+        setCategories(cRes.data || []);
+      } catch (err) {
+        // Resilient fallback to offline Dexie products if network fails
+        if (activeBusiness) {
+          let offlineProds = await db.products
             .where('businessId').equals(activeBusiness.id)
             .and(p => p.status === 'ACTIVE')
             .limit(50)
             .toArray();
+          if (offlineProds.length === 0) {
+            await seedDemoDataToDexie(activeBusiness.id);
+            offlineProds = await db.products
+              .where('businessId').equals(activeBusiness.id)
+              .toArray();
+          }
           setCatalog(offlineProds);
+          setCategories(DEMO_CATEGORIES);
         }
-      } catch (err) {}
+      }
     };
     loadCatalog();
   }, [isOnline, activeBusiness]);
