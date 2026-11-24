@@ -745,113 +745,119 @@ export const POS = () => {
 
         {/* --- MODE 1: SUPERMARKET COUNTER TABLE (FOOD CITY STYLE) --- */}
         {posMode === 'SUPERMARKET' ? (
-          <div className="flex-1 flex flex-col overflow-hidden p-3 lg:p-4">
+          <div className="flex-1 flex flex-col overflow-hidden p-3 lg:p-4 min-w-0">
             
             {/* Scanned Items Table Container */}
-            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden min-w-0">
               
-              {/* Supermarket Table Header */}
-              <div className="flex items-center bg-slate-50 border-b border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0 gap-3">
-                <div className="w-8 text-center shrink-0">#</div>
-                <div className="flex-1 min-w-0">Product Description</div>
-                <div className="w-32 hidden md:block shrink-0">Barcode / SKU</div>
-                <div className="w-24 text-right shrink-0">Price (LKR)</div>
-                <div className="w-28 text-center shrink-0">Qty</div>
-                <div className="w-28 text-right shrink-0">Total (LKR)</div>
-                <div className="w-10 text-center shrink-0">Del</div>
-              </div>
-
-              {/* Table Rows Body */}
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                {cart.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                    <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 shadow-xs">
-                      <Store size={32} />
-                    </div>
-                    <h3 className="text-base font-bold text-slate-700">Supermarket Billing Counter Ready</h3>
-                    <p className="text-xs text-slate-400 max-w-sm mt-1">
-                      Scan barcodes or type product names above. Scanned items will be listed line by line in this counter ledger.
-                    </p>
-                    <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                      <Sparkles size={13} className="text-amber-500" />
-                      <span>Use <strong>Hold Bill</strong> anytime to serve another customer</span>
-                    </div>
+              {/* Scrollable Table Wrapper: guarantees zero wrapping and ample product name width */}
+              <div className="flex-1 overflow-x-auto overflow-y-auto min-w-0">
+                <div className="min-w-[700px] flex flex-col h-full">
+                  
+                  {/* Supermarket Table Header */}
+                  <div className="flex items-center bg-slate-50 border-b border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0 gap-3 sticky top-0 z-10">
+                    <div className="w-8 text-center shrink-0">#</div>
+                    <div className="flex-1 min-w-[220px]">Product Description</div>
+                    <div className="w-36 shrink-0">Barcode / SKU</div>
+                    <div className="w-24 text-right shrink-0">Price (LKR)</div>
+                    <div className="w-28 text-center shrink-0">Qty</div>
+                    <div className="w-28 text-right shrink-0">Total (LKR)</div>
+                    <div className="w-10 text-center shrink-0">Del</div>
                   </div>
-                ) : (
-                  cart.map((item, index) => (
-                    <div 
-                      key={item.cartItemId}
-                      className="flex items-center px-4 py-2.5 hover:bg-slate-50/80 transition-colors text-sm font-medium gap-3"
-                    >
-                      {/* Row Index */}
-                      <div className="w-8 text-center font-bold text-slate-400 text-xs shrink-0">
-                        {index + 1}
-                      </div>
 
-                      {/* Name & Details */}
-                      <div className="flex-1 min-w-0 pr-2">
-                        <span className="font-bold text-slate-900 block leading-tight truncate">{item.name}</span>
-                        {item.company && (
-                          <span className="text-[10px] text-slate-400 font-semibold uppercase">{item.company}</span>
-                        )}
+                  {/* Table Rows Body */}
+                  <div className="flex-1 divide-y divide-slate-100">
+                    {cart.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 min-h-[300px]">
+                        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 shadow-xs">
+                          <Store size={32} />
+                        </div>
+                        <h3 className="text-base font-bold text-slate-700">Supermarket Billing Counter Ready</h3>
+                        <p className="text-xs text-slate-400 max-w-sm mt-1">
+                          Scan barcodes or type product names above. Scanned items will be listed line by line in this counter ledger.
+                        </p>
+                        <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                          <Sparkles size={13} className="text-amber-500" />
+                          <span>Use <strong>Hold Bill</strong> anytime to serve another customer</span>
+                        </div>
                       </div>
-
-                      {/* Barcode / SKU */}
-                      <div className="w-32 hidden md:block shrink-0">
-                        <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded truncate block max-w-full">
-                          {item.barcode || item.sku || '—'}
-                        </span>
-                      </div>
-
-                      {/* Unit Price */}
-                      <div className="w-24 text-right font-semibold text-slate-700 shrink-0">
-                        {formatLKR(item.sellingPrice)}
-                      </div>
-
-                      {/* Quantity Stepper */}
-                      <div className="w-28 flex items-center justify-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
+                    ) : (
+                      cart.map((item, index) => (
+                        <div 
+                          key={item.cartItemId}
+                          className="flex items-center px-4 py-3 hover:bg-blue-50/40 transition-colors text-sm font-medium gap-3"
                         >
-                          <Minus size={13} />
-                        </button>
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantityDirect(item.cartItemId, e.target.value)}
-                          className="w-11 h-7 text-center font-black text-slate-900 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 hide-arrows"
-                          min="1"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
-                        >
-                          <Plus size={13} />
-                        </button>
-                      </div>
+                          {/* Row Index */}
+                          <div className="w-8 text-center font-bold text-slate-400 text-xs shrink-0">
+                            {index + 1}
+                          </div>
 
-                      {/* Line Total */}
-                      <div className="w-28 text-right font-black text-slate-900 shrink-0">
-                        {formatLKR(item.lineSubtotal)}
-                      </div>
+                          {/* Name & Details */}
+                          <div className="flex-1 min-w-[220px] pr-2">
+                            <span className="font-bold text-slate-900 block leading-snug">{item.name}</span>
+                            {item.company && (
+                              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{item.company}</span>
+                            )}
+                          </div>
 
-                      {/* Delete */}
-                      <div className="w-10 text-center shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(item.cartItemId)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Remove item"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                          {/* Barcode / SKU */}
+                          <div className="w-36 shrink-0">
+                            <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded truncate block border border-slate-200/60">
+                              {item.barcode || item.sku || '—'}
+                            </span>
+                          </div>
+
+                          {/* Unit Price */}
+                          <div className="w-24 text-right font-semibold text-slate-700 shrink-0">
+                            {formatLKR(item.sellingPrice)}
+                          </div>
+
+                          {/* Quantity Stepper */}
+                          <div className="w-28 flex items-center justify-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                              className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => updateQuantityDirect(item.cartItemId, e.target.value)}
+                              className="w-11 h-7 text-center font-black text-slate-900 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 hide-arrows"
+                              min="1"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                              className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+
+                          {/* Line Total */}
+                          <div className="w-28 text-right font-black text-slate-900 shrink-0">
+                            {formatLKR(item.lineSubtotal)}
+                          </div>
+
+                          {/* Delete */}
+                          <div className="w-10 text-center shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeFromCart(item.cartItemId)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Remove item"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Fast Quick-Add Chips for Frequent Items */}
