@@ -55,6 +55,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [isOpen, initialAmountTendered]);
 
   const validateCart = async () => {
+    setStep('VALIDATING');
     try {
       const payload = {
         items: cartItems.map(item => ({
