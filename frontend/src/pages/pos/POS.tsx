@@ -57,8 +57,14 @@ export const POS = () => {
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('pos_draft_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('pos_draft_cart');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      localStorage.removeItem('pos_draft_cart');
+      return [];
+    }
   });
 
   // Held Bills state (Food City Style Park / Suspend)
@@ -79,8 +85,8 @@ export const POS = () => {
   const [catalog, setCatalog] = useState<any[]>([]);
   
   const [discount, setDiscount] = useState<number>(() => {
-    const saved = localStorage.getItem('pos_draft_discount');
-    return saved ? parseFloat(saved) : 0;
+    const saved = Number(localStorage.getItem('pos_draft_discount') || 0);
+    return Number.isFinite(saved) && saved > 0 ? saved : 0;
   });
 
   // Quick cash tender helper state
