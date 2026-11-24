@@ -751,14 +751,14 @@ export const POS = () => {
             <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
               
               {/* Supermarket Table Header */}
-              <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
-                <div className="col-span-1 text-center">#</div>
-                <div className="col-span-4 lg:col-span-5">Product Description</div>
-                <div className="col-span-2 hidden md:block">Barcode / SKU</div>
-                <div className="col-span-2 text-right">Price (LKR)</div>
-                <div className="col-span-2 text-center">Qty</div>
-                <div className="col-span-2 lg:col-span-1 text-right">Total (LKR)</div>
-                <div className="col-span-1 text-center">Del</div>
+              <div className="flex items-center bg-slate-50 border-b border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0 gap-3">
+                <div className="w-8 text-center shrink-0">#</div>
+                <div className="flex-1 min-w-0">Product Description</div>
+                <div className="w-32 hidden md:block shrink-0">Barcode / SKU</div>
+                <div className="w-24 text-right shrink-0">Price (LKR)</div>
+                <div className="w-28 text-center shrink-0">Qty</div>
+                <div className="w-28 text-right shrink-0">Total (LKR)</div>
+                <div className="w-10 text-center shrink-0">Del</div>
               </div>
 
               {/* Table Rows Body */}
@@ -781,15 +781,15 @@ export const POS = () => {
                   cart.map((item, index) => (
                     <div 
                       key={item.cartItemId}
-                      className="grid grid-cols-12 items-center px-4 py-2.5 hover:bg-slate-50/80 transition-colors text-sm font-medium"
+                      className="flex items-center px-4 py-2.5 hover:bg-slate-50/80 transition-colors text-sm font-medium gap-3"
                     >
                       {/* Row Index */}
-                      <div className="col-span-1 text-center font-bold text-slate-400 text-xs">
+                      <div className="w-8 text-center font-bold text-slate-400 text-xs shrink-0">
                         {index + 1}
                       </div>
 
                       {/* Name & Details */}
-                      <div className="col-span-4 lg:col-span-5 pr-2">
+                      <div className="flex-1 min-w-0 pr-2">
                         <span className="font-bold text-slate-900 block leading-tight truncate">{item.name}</span>
                         {item.company && (
                           <span className="text-[10px] text-slate-400 font-semibold uppercase">{item.company}</span>
@@ -797,19 +797,19 @@ export const POS = () => {
                       </div>
 
                       {/* Barcode / SKU */}
-                      <div className="col-span-2 hidden md:block">
-                        <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                      <div className="w-32 hidden md:block shrink-0">
+                        <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded truncate block max-w-full">
                           {item.barcode || item.sku || '—'}
                         </span>
                       </div>
 
                       {/* Unit Price */}
-                      <div className="col-span-2 text-right font-semibold text-slate-700">
+                      <div className="w-24 text-right font-semibold text-slate-700 shrink-0">
                         {formatLKR(item.sellingPrice)}
                       </div>
 
                       {/* Quantity Stepper */}
-                      <div className="col-span-2 flex items-center justify-center gap-1">
+                      <div className="w-28 flex items-center justify-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
@@ -821,7 +821,7 @@ export const POS = () => {
                           type="number"
                           value={item.quantity}
                           onChange={(e) => updateQuantityDirect(item.cartItemId, e.target.value)}
-                          className="w-12 h-7 text-center font-black text-slate-900 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 hide-arrows"
+                          className="w-11 h-7 text-center font-black text-slate-900 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 hide-arrows"
                           min="1"
                         />
                         <button
@@ -834,12 +834,12 @@ export const POS = () => {
                       </div>
 
                       {/* Line Total */}
-                      <div className="col-span-2 lg:col-span-1 text-right font-black text-slate-900">
+                      <div className="w-28 text-right font-black text-slate-900 shrink-0">
                         {formatLKR(item.lineSubtotal)}
                       </div>
 
                       {/* Delete */}
-                      <div className="col-span-1 text-center">
+                      <div className="w-10 text-center shrink-0">
                         <button
                           type="button"
                           onClick={() => removeFromCart(item.cartItemId)}
