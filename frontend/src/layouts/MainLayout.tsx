@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Menu, X, LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, 
   LogOut, Cloud, Crown, Shield, Wallet, Truck, PackagePlus, RotateCcw, 
@@ -71,6 +71,8 @@ export const MainLayout = () => {
   const { user, activeBusiness, logout, login, activeRole } = useAuth();
   const { isOnline } = useNetwork();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPosPage = location.pathname === '/pos';
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(prev => {
@@ -401,10 +403,17 @@ export const MainLayout = () => {
         </aside>
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 w-full bg-slate-50">
-          <div className="mx-auto max-w-7xl">
+        <main className={cn(
+          "flex-1 w-full bg-slate-50 transition-all duration-200",
+          isPosPage ? "overflow-hidden p-0" : "overflow-auto p-4 md:p-6"
+        )}>
+          {isPosPage ? (
             <Outlet />
-          </div>
+          ) : (
+            <div className="mx-auto max-w-7xl">
+              <Outlet />
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -330,7 +330,7 @@ export const POS = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-gray-100 overflow-hidden -m-4 md:-m-6">
+    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-slate-100 overflow-hidden w-full">
       
       {completedOrderId && (
         <ReceiptPreviewModal
@@ -511,19 +511,20 @@ export const POS = () => {
       </div>
 
       {/* Right Column: Cart & Checkout */}
-      <div className="w-full lg:w-[420px] xl:w-[480px] h-[60%] lg:h-full flex flex-col bg-white">
-        <div className="p-3 lg:p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2 text-gray-800 font-semibold text-lg">
-            <ShoppingCart size={20} />
-            Draft Bill
-            <Badge variant="neutral" className="ml-2">{totals.totalItems}</Badge>
+      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-[60%] lg:h-full flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-sm z-20">
+        <div className="p-3 lg:p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-2 text-slate-800 font-bold text-base lg:text-lg">
+            <ShoppingCart size={20} className="text-blue-600 shrink-0" />
+            <span>Draft Bill</span>
+            <Badge variant="neutral" className="ml-1 px-2 py-0.5 text-xs font-bold">{totals.totalItems}</Badge>
           </div>
           {cart.length > 0 && (
             <button 
+              type="button"
               onClick={() => setIsClearConfirmOpen(true)}
-              className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1 p-1.5 rounded hover:bg-red-50 transition-colors"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1 py-1.5 px-2.5 rounded-lg transition-colors border border-rose-200/60 shrink-0"
             >
-              <Trash2 size={16} /> Clear
+              <Trash2 size={14} /> Clear
             </button>
           )}
         </div>
@@ -592,35 +593,37 @@ export const POS = () => {
           )}
         </div>
 
-        <div className="bg-white border-t border-gray-200 p-4 lg:p-5 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] shrink-0 z-20">
-          <div className="space-y-2 mb-4 text-sm">
-            <div className="flex justify-between text-gray-600">
+        <div className="bg-white border-t border-slate-200 p-4 lg:p-5 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] shrink-0 z-20">
+          <div className="space-y-2.5 mb-4 text-sm">
+            <div className="flex justify-between items-center text-slate-600 font-medium">
               <span>Subtotal</span>
-              <span className="font-medium text-gray-900">{formatLKR(totals.subtotal)}</span>
+              <span className="font-semibold text-slate-900">{formatLKR(totals.subtotal)}</span>
             </div>
             
-            <div className="flex justify-between items-center text-gray-600">
+            <div className="flex justify-between items-center text-slate-600 font-medium">
               <span>Order Discount</span>
-              <div className="flex items-center max-w-[120px]">
-                <span className="mr-2 text-gray-500">Rs.</span>
+              <div className="flex items-center gap-1 max-w-[130px]">
+                <span className="text-slate-400 text-xs font-semibold">Rs.</span>
                 <input 
                   type="number" 
                   value={discount || ''}
                   onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
                   placeholder="0.00"
-                  className="w-full text-right border-b border-gray-300 focus:border-blue-500 focus:outline-none font-medium text-gray-900 py-1 hide-arrows"
+                  className="w-full text-right border-b border-slate-300 focus:border-blue-500 focus:outline-none font-semibold text-slate-900 py-0.5 text-sm hide-arrows"
                 />
               </div>
             </div>
             
-            <div className="border-t border-gray-200 pt-3 flex justify-between items-end mt-3">
-              <span className="text-gray-800 font-semibold text-lg">Total</span>
-              <span className="text-3xl lg:text-4xl font-black text-blue-700">{formatLKR(totals.total)}</span>
+            <div className="border-t border-slate-200 pt-3 flex justify-between items-baseline mt-3">
+              <span className="text-slate-900 font-bold text-base">Total Due</span>
+              <span className="text-2xl lg:text-3xl font-black text-blue-700 tracking-tight whitespace-nowrap">
+                {formatLKR(totals.total)}
+              </span>
             </div>
           </div>
 
           <Button 
-            className="w-full h-14 text-lg font-bold shadow-md flex items-center justify-center gap-2"
+            className="w-full h-12 lg:h-13 text-base font-bold shadow-sm flex items-center justify-center gap-2 rounded-xl"
             disabled={cart.length === 0 || isCheckingOut}
             isLoading={isCheckingOut}
             onClick={handleCheckoutPreview}
