@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { ScanLine, Search, Plus, Minus, Trash2, X, ShoppingCart } from 'lucide-react';
+import { 
+  ScanLine, Search, Plus, Minus, Trash2, X, ShoppingCart, 
+  PauseCircle, PlayCircle, Clock, Store, Grid, 
+  CreditCard, Sparkles
+} from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { formatLKR } from '../../utils/currency';
 import toast from 'react-hot-toast';
 import { BarcodeScanner } from '../../components/scanner/BarcodeScanner';
-import { ConfirmDialog } from '../../components/ui/Modal';
+import { ConfirmDialog, Modal } from '../../components/ui/Modal';
 import { CheckoutModal } from './CheckoutModal';
 import { ReceiptPreviewModal } from '../../components/ReceiptPreviewModal';
 import { useNetwork } from '../../state/NetworkContext';
@@ -23,6 +27,8 @@ interface Product {
   stockQuantity: number;
   unit: string;
   status: string;
+  company?: string;
+  categoryId?: string;
 }
 
 interface CartItem extends Product {
@@ -32,19 +38,50 @@ interface CartItem extends Product {
   lineSubtotal: number;
 }
 
+interface HeldBill {
+  id: string;
+  billNumber: string;
+  heldAt: string;
+  cashierName: string;
+  customerName?: string;
+  customerPhone?: string;
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  totalItems: number;
+}
+
 export const POS = () => {
   const { isOnline } = useNetwork();
-  const { activeBusiness } = useAuth();
+  const { activeBusiness, user } = useAuth();
   
+  // Cart state
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('pos_draft_cart');
     return saved ? JSON.parse(saved) : [];
   });
-  
+
+  // Held Bills state (Food City Style Park / Suspend)
+  const [heldBills, setHeldBills] = useState<HeldBill[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_held_bills');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // POS Mode: 'SUPERMARKET' (Food City Table Grid) or 'CATALOG' (Touch Tiles)
+  const [posMode, setPosMode] = useState<'SUPERMARKET' | 'CATALOG'>(() => {
+    return (localStorage.getItem('pos_view_mode') as any) || 'SUPERMARKET';
+  });
+
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -53,13 +90,17 @@ export const POS = () => {
     const saved = localStorage.getItem('pos_draft_discount');
     return saved ? parseFloat(saved) : 0;
   });
+
+  // Quick cash tender helper state
+  const [cashTendered, setCashTendered] = useState<string>('');
+  
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial product catalog and categories for quick POS selection
+  // Load catalog on mount
   useEffect(() => {
     const loadCatalog = async () => {
       try {
@@ -70,7 +111,6 @@ export const POS = () => {
         setCatalog(pRes.data?.products || []);
         setCategories(cRes.data || []);
       } catch (err) {
-        // Resilient fallback to offline Dexie products if network fails
         if (activeBusiness) {
           let offlineProds = await db.products
             .where('businessId').equals(activeBusiness.id)
@@ -91,33 +131,53 @@ export const POS = () => {
     loadCatalog();
   }, [isOnline, activeBusiness]);
 
-  // Focus input automatically on mount and after scanner closes
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow ctrl/cmd + K to focus search
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    if (!isScannerOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isScannerOpen]);
-
-  // Persist cart to local storage securely
+  // Persist cart, discount, heldBills, viewMode
   useEffect(() => {
     localStorage.setItem('pos_draft_cart', JSON.stringify(cart));
     localStorage.setItem('pos_draft_discount', discount.toString());
   }, [cart, discount]);
 
-  // Centralized frontend calculation pipeline (Mirrors backend logic)
+  useEffect(() => {
+    localStorage.setItem('pos_held_bills', JSON.stringify(heldBills));
+  }, [heldBills]);
+
+  useEffect(() => {
+    localStorage.setItem('pos_view_mode', posMode);
+  }, [posMode]);
+
+  // Keyboard shortcuts: Ctrl+K (search), Ctrl+H (hold bill), Ctrl+R (recall bills), F12 (checkout)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        handleHoldBill();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        setIsRecallModalOpen(true);
+      }
+      if (e.key === 'F12') {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckoutPreview();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, heldBills]);
+
+  // Focus input automatically on mount and after scanner closes
+  useEffect(() => {
+    if (!isScannerOpen && !isRecallModalOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isScannerOpen, isRecallModalOpen]);
+
+  // Calculations
   const calculateTotals = () => {
     let subtotal = 0;
     cart.forEach(item => {
@@ -127,7 +187,7 @@ export const POS = () => {
     });
 
     const orderDiscount = Math.min(Number(discount) || 0, subtotal);
-    const total = subtotal - orderDiscount;
+    const total = Math.max(0, subtotal - orderDiscount);
     const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity), 0);
 
     return { subtotal, orderDiscount, total, totalItems };
@@ -135,7 +195,7 @@ export const POS = () => {
 
   const totals = calculateTotals();
 
-  // Debounced search
+  // Search logic
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput.trim().length >= 2) {
@@ -143,93 +203,109 @@ export const POS = () => {
       } else {
         setSearchResults([]);
       }
-    }, 300);
+    }, 250);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   const performSearch = async (term: string) => {
     setIsSearching(true);
     try {
-      if (isOnline) {
-        try {
-          const barcodeRes = await apiClient.get(`/products/barcode/${encodeURIComponent(term)}`);
-          const product = barcodeRes.data.data || barcodeRes.data;
-          
-          if (product) {
-            handleAddToCart(product);
-            setSearchInput('');
-            setSearchResults([]);
-            setIsSearching(false);
-            return;
-          }
-        } catch (err) {}
-
-        const res = await apiClient.get('/products', {
-          params: { search: term, limit: 10, status: 'ACTIVE' }
-        });
-        setSearchResults(res.data.products);
-      } else {
-        // Offline IndexedDB Search
-        if (!activeBusiness) return;
-        
-        // Exact barcode match first
-        const barcodeMatch = await db.products
-          .where('businessId').equals(activeBusiness.id)
-          .and(p => p.barcode === term && p.status === 'ACTIVE')
-          .first();
-          
-        if (barcodeMatch) {
-          handleAddToCart(barcodeMatch);
-          setSearchInput('');
-          setSearchResults([]);
-          setIsSearching(false);
-          return;
-        }
-
-        // Fuzzy text search
-        const lowerTerm = term.toLowerCase();
-        const results = await db.products
-          .where('businessId').equals(activeBusiness.id)
-          .filter(p => p.status === 'ACTIVE' && (p.name.toLowerCase().includes(lowerTerm) || !!(p.sku && p.sku.toLowerCase().includes(lowerTerm))))
-          .limit(10)
-          .toArray();
-
-        setSearchResults(results);
+      // 1. Check local catalog exact barcode or sku match first
+      const exactMatch = catalog.find(
+        p => (p.barcode && p.barcode.trim() === term.trim()) || 
+             (p.sku && p.sku.trim().toLowerCase() === term.trim().toLowerCase())
+      );
+      if (exactMatch) {
+        handleAddToCart(exactMatch);
+        setSearchInput('');
+        setSearchResults([]);
+        setIsSearching(false);
+        return;
       }
-    } catch (error) {
-      // Silently ignore to prevent spam
+
+      // 2. Query products
+      const res = await apiClient.get('/products', {
+        params: { search: term, limit: 8, status: 'ACTIVE' }
+      });
+      setSearchResults(res.data?.products || []);
+    } catch {
+      // Fallback local search
+      const q = term.toLowerCase();
+      const local = catalog.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        (p.barcode && p.barcode.includes(q)) || 
+        (p.sku && p.sku.toLowerCase().includes(q))
+      );
+      setSearchResults(local.slice(0, 8));
     } finally {
       setIsSearching(false);
     }
   };
 
+  // Immediate Enter key submit on barcode scanner input
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = searchInput.trim();
+    if (!term) return;
+
+    // Check exact barcode or SKU in catalog
+    const matched = catalog.find(
+      p => (p.barcode && p.barcode.trim() === term) ||
+           (p.sku && p.sku.toLowerCase() === term.toLowerCase()) ||
+           p.name.toLowerCase() === term.toLowerCase()
+    );
+
+    if (matched) {
+      handleAddToCart(matched);
+      setSearchInput('');
+      setSearchResults([]);
+      return;
+    }
+
+    // If search results exist, pick first result
+    if (searchResults.length > 0) {
+      handleAddToCart(searchResults[0]);
+      setSearchInput('');
+      setSearchResults([]);
+      return;
+    }
+
+    // Try API barcode search
+    apiClient.get(`/products/barcode/${encodeURIComponent(term)}`)
+      .then(res => {
+        const prod = res.data?.data || res.data;
+        if (prod) {
+          handleAddToCart(prod);
+          setSearchInput('');
+          setSearchResults([]);
+        } else {
+          toast.error(`No product found for code "${term}"`);
+        }
+      })
+      .catch(() => {
+        toast.error(`No product found for code "${term}"`);
+      });
+  };
+
   const handleScan = async (code: string) => {
     setIsScannerOpen(false);
     try {
-      if (isOnline) {
-        const barcodeRes = await apiClient.get(`/products/barcode/${encodeURIComponent(code.trim())}`);
-        const product = barcodeRes.data.data || barcodeRes.data;
+      const barcodeRes = await apiClient.get(`/products/barcode/${encodeURIComponent(code.trim())}`);
+      const product = barcodeRes.data?.data || barcodeRes.data;
+      if (product) {
         handleAddToCart(product);
-        toast.success(`Added ${product.name}`);
+        toast.success(`Scanned: ${product.name}`);
       } else {
-        if (!activeBusiness) return;
-        const product = await db.products
-          .where('businessId').equals(activeBusiness.id)
-          .and(p => p.barcode === code.trim() && p.status === 'ACTIVE')
-          .first();
-          
-        if (product) {
-          handleAddToCart(product);
-          toast.success(`Added ${product.name} (Offline)`);
-        } else {
-          toast.error('Product not found in offline catalog.');
-        }
+        toast.error('Product not found in catalog');
       }
-    } catch (error: any) {
-      if (error.status === 404) {
-        toast.error('Product not found in catalog.');
+    } catch {
+      // Fallback to local catalog
+      const local = catalog.find(p => p.barcode === code.trim());
+      if (local) {
+        handleAddToCart(local);
+        toast.success(`Scanned: ${local.name}`);
       } else {
-        toast.error(error.message || 'Scan failed.');
+        toast.error('Barcode not found in catalog');
       }
     }
   };
@@ -245,7 +321,7 @@ export const POS = () => {
       const newQty = existing ? existing.quantity + 1 : 1;
       
       if (newQty > Number(product.stockQuantity)) {
-        toast.error(`Not enough stock for ${product.name}. Available: ${product.stockQuantity}`);
+        toast.error(`Stock limit reached for ${product.name}. Available: ${product.stockQuantity}`);
         return prev;
       }
 
@@ -276,7 +352,10 @@ export const POS = () => {
   };
 
   const updateQuantity = (cartItemId: string, newQty: number) => {
-    if (newQty <= 0) return;
+    if (newQty <= 0) {
+      removeFromCart(cartItemId);
+      return;
+    }
     
     setCart(prev => prev.map(item => {
       if (item.cartItemId === cartItemId) {
@@ -311,27 +390,93 @@ export const POS = () => {
   const clearCart = () => {
     setCart([]);
     setDiscount(0);
+    setCashTendered('');
     setIsClearConfirmOpen(false);
   };
 
+  // --- HOLD BILLS (FOOD CITY STYLE) ---
+  const handleHoldBill = () => {
+    if (cart.length === 0) {
+      toast.error('Cannot hold an empty bill. Add items first.');
+      return;
+    }
+
+    const newHold: HeldBill = {
+      id: `hold-${Date.now()}`,
+      billNumber: `HOLD-#${(heldBills.length + 1).toString().padStart(2, '0')}`,
+      heldAt: new Date().toISOString(),
+      cashierName: user?.name || 'Cashier',
+      items: [...cart],
+      subtotal: totals.subtotal,
+      discount,
+      total: totals.total,
+      totalItems: totals.totalItems
+    };
+
+    setHeldBills(prev => [newHold, ...prev]);
+    setCart([]);
+    setDiscount(0);
+    setCashTendered('');
+    localStorage.removeItem('pos_draft_cart');
+    localStorage.removeItem('pos_draft_discount');
+    toast.success(`Bill ${newHold.billNumber} held! Counter ready for next customer.`);
+  };
+
+  const handleRecallBill = (bill: HeldBill) => {
+    // If active cart already has items, auto-hold current bill so nothing is lost
+    if (cart.length > 0) {
+      const autoHold: HeldBill = {
+        id: `hold-${Date.now()}`,
+        billNumber: `HOLD-#${(heldBills.length + 1).toString().padStart(2, '0')}`,
+        heldAt: new Date().toISOString(),
+        cashierName: user?.name || 'Cashier',
+        items: [...cart],
+        subtotal: totals.subtotal,
+        discount,
+        total: totals.total,
+        totalItems: totals.totalItems
+      };
+      setHeldBills(prev => [autoHold, ...prev.filter(b => b.id !== bill.id)]);
+      toast.success(`Active cart saved as ${autoHold.billNumber}`);
+    } else {
+      setHeldBills(prev => prev.filter(b => b.id !== bill.id));
+    }
+
+    setCart(bill.items);
+    setDiscount(bill.discount);
+    setIsRecallModalOpen(false);
+    toast.success(`Recalled ${bill.billNumber} (${bill.items.length} items)`);
+  };
+
+  const handleDeleteHeldBill = (id: string) => {
+    setHeldBills(prev => prev.filter(b => b.id !== id));
+    toast.success('Held bill discarded');
+  };
+
+  // Checkout handlers
   const handleCheckoutPreview = () => {
     if (cart.length === 0) return;
     setIsCheckingOut(true);
   };
 
   const handleCheckoutSuccess = (orderData: any) => {
-    // Clear cart immediately upon successful transaction
     setCart([]);
     setDiscount(0);
+    setCashTendered('');
     localStorage.removeItem('pos_draft_cart');
     localStorage.removeItem('pos_draft_discount');
     setIsCheckingOut(false);
     setCompletedOrderId(orderData.id);
   };
 
+  // Calculated change due for cash tender helper
+  const parsedTendered = parseFloat(cashTendered) || 0;
+  const changeDue = parsedTendered > 0 ? parsedTendered - totals.total : 0;
+
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-slate-100 overflow-hidden w-full">
+    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-slate-100 overflow-hidden w-full select-none font-sans">
       
+      {/* Modals */}
       {completedOrderId && (
         <ReceiptPreviewModal
           isOpen={!!completedOrderId}
@@ -354,9 +499,9 @@ export const POS = () => {
         isOpen={isClearConfirmOpen}
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={clearCart}
-        title="Clear Cart"
-        description="Are you sure you want to remove all items from the current draft?"
-        confirmText="Clear Cart"
+        title="Void / Clear Bill"
+        description="Are you sure you want to remove all items from this customer's active bill?"
+        confirmText="Clear Bill"
         isDanger
       />
 
@@ -367,113 +512,418 @@ export const POS = () => {
         />
       )}
 
-      {/* Left Column: Search & Results */}
-      <div className="flex-1 flex flex-col h-[40%] lg:h-full border-b lg:border-b-0 lg:border-r border-gray-200 bg-white z-10 relative">
-        <div className="p-4 border-b border-gray-100 shadow-sm z-20 shrink-0">
-          <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Search size={18} />
+      {/* Held Bills (Recall) Modal */}
+      {isRecallModalOpen && (
+        <Modal
+          isOpen={isRecallModalOpen}
+          onClose={() => setIsRecallModalOpen(false)}
+          title={`Parked / Held Bills (${heldBills.length})`}
+        >
+          <div className="space-y-4">
+            <p className="text-xs text-slate-500">
+              Select any suspended transaction to recall it back into the billing counter.
+            </p>
+
+            {heldBills.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">
+                <Clock size={48} className="mx-auto mb-2 opacity-40" />
+                <p className="font-semibold text-slate-600">No held bills in queue</p>
+                <p className="text-xs text-slate-400 mt-1">Use "Hold Bill" to park a customer's cart when they step away.</p>
               </div>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 lg:py-4 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg transition-colors"
-                placeholder="Search products or scan barcode (Ctrl+K)"
-                autoComplete="off"
-              />
+            ) : (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                {heldBills.map((bill) => (
+                  <div 
+                    key={bill.id}
+                    className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs hover:border-blue-400 hover:shadow-sm transition-all flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-blue-700 text-sm tracking-tight">{bill.billNumber}</span>
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                          <Clock size={11} /> {new Date(bill.heldAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
+                          {bill.totalItems} {bill.totalItems === 1 ? 'item' : 'items'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-600 truncate mt-1">
+                        {bill.items.map(it => `${it.name} (${it.quantity})`).join(', ')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className="text-sm font-extrabold text-slate-900 block">{formatLKR(bill.total)}</span>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="primary"
+                        onClick={() => handleRecallBill(bill)}
+                        className="gap-1 font-bold text-xs"
+                      >
+                        <PlayCircle size={14} /> Resume
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHeldBill(bill.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="Discard held bill"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <Button variant="secondary" onClick={() => setIsRecallModalOpen(false)}>
+                Close
+              </Button>
             </div>
-            <Button 
-              type="button" 
-              size="lg"
-              variant="secondary"
-              onClick={() => setIsScannerOpen(true)}
-              title="Camera Scanner"
-              className="lg:px-6"
-            >
-              <ScanLine size={24} />
-            </Button>
-          </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* Main Billing Workspace */}
+      <div className="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden relative">
+        
+        {/* Top Cashier Bar: Barcode search, Hold/Recall, Layout Toggle */}
+        <div className="bg-white border-b border-slate-200 px-4 py-2.5 shadow-xs shrink-0 z-20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            
+            {/* Fast Barcode & Item Search Form */}
+            <form onSubmit={handleBarcodeSubmit} className="flex-1 flex items-center gap-2 max-w-2xl">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-600">
+                  {isSearching ? (
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Search size={18} />
+                  )}
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Scan barcode or type item / SKU (Press Enter to add)..."
+                  autoComplete="off"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-2xs"
+                />
+                {searchInput && (
+                  <button 
+                    type="button"
+                    onClick={() => { setSearchInput(''); setSearchResults([]); }}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+
+                {/* Instant Search Suggestions Dropdown */}
+                {searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100">
+                    {searchResults.map((prod) => (
+                      <div
+                        key={prod.id}
+                        onClick={() => handleAddToCart(prod)}
+                        className="p-3 hover:bg-blue-50/80 cursor-pointer flex items-center justify-between gap-3 transition-colors"
+                      >
+                        <div>
+                          <p className="font-semibold text-slate-900 text-sm">{prod.name}</p>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                            {prod.barcode && <span className="font-mono bg-slate-100 px-1.5 py-0.2 rounded text-[11px]">{prod.barcode}</span>}
+                            <span>Stock: {Number(prod.stockQuantity)}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-black text-blue-700 text-sm block">{formatLKR(prod.sellingPrice)}</span>
+                          <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Click to Add</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Camera Scanner Button */}
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shrink-0"
+                title="Camera Scanner"
+              >
+                <ScanLine size={19} />
+              </button>
+            </form>
+
+            {/* Quick Action Toolbar */}
+            <div className="flex items-center gap-2 shrink-0">
+              
+              {/* Hold Bill Button */}
+              <button
+                type="button"
+                onClick={handleHoldBill}
+                disabled={cart.length === 0}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+                  cart.length > 0
+                    ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 shadow-2xs'
+                    : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed'
+                }`}
+                title="Hold / Suspend current bill (Ctrl+H)"
+              >
+                <PauseCircle size={16} className={cart.length > 0 ? "text-amber-600" : "text-slate-300"} />
+                <span>Hold Bill</span>
+              </button>
+
+              {/* Recall Held Bills Button */}
+              <button
+                type="button"
+                onClick={() => setIsRecallModalOpen(true)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+                  heldBills.length > 0
+                    ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100 shadow-2xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+                title="Recall parked bills (Ctrl+R)"
+              >
+                <PlayCircle size={16} className={heldBills.length > 0 ? "text-blue-600" : "text-slate-400"} />
+                <span>Held Bills</span>
+                {heldBills.length > 0 && (
+                  <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black animate-pulse">
+                    {heldBills.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Clear Cart Button */}
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsClearConfirmOpen(true)}
+                  className="p-2 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors"
+                  title="Clear / Void Bill"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+
+              {/* POS Mode Switcher: Food City Table vs Touch Tiles */}
+              <div className="flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
+                <button
+                  type="button"
+                  onClick={() => setPosMode('SUPERMARKET')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    posMode === 'SUPERMARKET'
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Supermarket Counter Table Mode (Food City Style)"
+                >
+                  <Store size={14} /> Counter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPosMode('CATALOG')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    posMode === 'CATALOG'
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Touch Catalog Tiles Mode"
+                >
+                  <Grid size={14} /> Tiles
+                </button>
+              </div>
+
+            </div>
+          </div>
         </div>
 
-        {/* Category Filter Pills (Visible when not actively searching text) */}
-        {searchInput.length === 0 && categories.length > 0 && (
-          <div className="flex gap-2 p-3 bg-white border-b border-slate-100 overflow-x-auto shrink-0 scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setSelectedCategory('ALL')}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedCategory === 'ALL'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Items ({catalog.length})
-            </button>
-            {categories.map((c: any) => {
-              const count = catalog.filter((p: any) => p.categoryId === c.id).length;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(c.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    selectedCategory === c.id
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {c.name} {count > 0 && `(${count})`}
-                </button>
-              );
-            })}
+        {/* --- MODE 1: SUPERMARKET COUNTER TABLE (FOOD CITY STYLE) --- */}
+        {posMode === 'SUPERMARKET' ? (
+          <div className="flex-1 flex flex-col overflow-hidden p-3 lg:p-4">
+            
+            {/* Scanned Items Table Container */}
+            <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+              
+              {/* Supermarket Table Header */}
+              <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                <div className="col-span-1 text-center">#</div>
+                <div className="col-span-4 lg:col-span-5">Product Description</div>
+                <div className="col-span-2 hidden md:block">Barcode / SKU</div>
+                <div className="col-span-2 text-right">Price (LKR)</div>
+                <div className="col-span-2 text-center">Qty</div>
+                <div className="col-span-2 lg:col-span-1 text-right">Total (LKR)</div>
+                <div className="col-span-1 text-center">Del</div>
+              </div>
+
+              {/* Table Rows Body */}
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                {cart.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                    <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 shadow-xs">
+                      <Store size={32} />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-700">Supermarket Billing Counter Ready</h3>
+                    <p className="text-xs text-slate-400 max-w-sm mt-1">
+                      Scan barcodes or type product names above. Scanned items will be listed line by line in this counter ledger.
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                      <Sparkles size={13} className="text-amber-500" />
+                      <span>Use <strong>Hold Bill</strong> anytime to serve another customer</span>
+                    </div>
+                  </div>
+                ) : (
+                  cart.map((item, index) => (
+                    <div 
+                      key={item.cartItemId}
+                      className="grid grid-cols-12 items-center px-4 py-2.5 hover:bg-slate-50/80 transition-colors text-sm font-medium"
+                    >
+                      {/* Row Index */}
+                      <div className="col-span-1 text-center font-bold text-slate-400 text-xs">
+                        {index + 1}
+                      </div>
+
+                      {/* Name & Details */}
+                      <div className="col-span-4 lg:col-span-5 pr-2">
+                        <span className="font-bold text-slate-900 block leading-tight truncate">{item.name}</span>
+                        {item.company && (
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase">{item.company}</span>
+                        )}
+                      </div>
+
+                      {/* Barcode / SKU */}
+                      <div className="col-span-2 hidden md:block">
+                        <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                          {item.barcode || item.sku || '—'}
+                        </span>
+                      </div>
+
+                      {/* Unit Price */}
+                      <div className="col-span-2 text-right font-semibold text-slate-700">
+                        {formatLKR(item.sellingPrice)}
+                      </div>
+
+                      {/* Quantity Stepper */}
+                      <div className="col-span-2 flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantityDirect(item.cartItemId, e.target.value)}
+                          className="w-12 h-7 text-center font-black text-slate-900 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 hide-arrows"
+                          min="1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition-colors active:scale-95"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+
+                      {/* Line Total */}
+                      <div className="col-span-2 lg:col-span-1 text-right font-black text-slate-900">
+                        {formatLKR(item.lineSubtotal)}
+                      </div>
+
+                      {/* Delete */}
+                      <div className="col-span-1 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.cartItemId)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Remove item"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Fast Quick-Add Chips for Frequent Items */}
+              <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 shrink-0">
+                  Quick Add:
+                </span>
+                {catalog.slice(0, 6).map((prod) => (
+                  <button
+                    key={prod.id}
+                    type="button"
+                    onClick={() => handleAddToCart(prod)}
+                    className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-xs font-semibold text-slate-700 transition-colors shrink-0 flex items-center gap-1 shadow-2xs"
+                  >
+                    <Plus size={12} className="text-blue-600" />
+                    <span>{prod.name.split(' ')[0]} {prod.name.split(' ')[1] || ''}</span>
+                    <span className="text-slate-400 font-normal">({prod.sellingPrice})</span>
+                  </button>
+                ))}
+              </div>
+
+            </div>
           </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/60">
-          {searchInput.length > 0 && searchResults.length === 0 && !isSearching && (
-            <div className="text-center text-slate-400 mt-10">
-              No products found matching "{searchInput}"
+        ) : (
+          /* --- MODE 2: TOUCH CATALOG TILES GRID --- */
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Category Filter Pills */}
+            <div className="flex gap-2 p-3 bg-white border-b border-slate-200 overflow-x-auto shrink-0 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('ALL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedCategory === 'ALL'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                All Products ({catalog.length})
+              </button>
+              {categories.map((c: any) => {
+                const count = catalog.filter((p: any) => p.categoryId === c.id).length;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(c.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                      selectedCategory === c.id
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {c.name} {count > 0 && `(${count})`}
+                  </button>
+                );
+              })}
             </div>
-          )}
 
-          {isSearching && (
-            <div className="text-center text-blue-600 mt-10 animate-pulse font-medium text-sm">
-              Searching catalog...
-            </div>
-          )}
-
-          {/* Product Grid: either search results or category-filtered catalog */}
-          {(() => {
-            const displayProducts = searchInput.length > 0
-              ? searchResults
-              : (selectedCategory === 'ALL' 
-                  ? catalog 
-                  : catalog.filter((p: any) => p.categoryId === selectedCategory));
-
-            if (displayProducts.length === 0 && !isSearching && searchInput.length === 0) {
-              return (
-                <div className="text-center text-slate-400 mt-12 text-sm">
-                  No products in this category yet.
-                </div>
-              );
-            }
-
-            return (
+            {/* Catalog Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {displayProducts.map(product => {
+                {(selectedCategory === 'ALL' ? catalog : catalog.filter((p: any) => p.categoryId === selectedCategory)).map(product => {
                   const isOutOfStock = Number(product.stockQuantity) <= 0;
                   return (
                     <div 
                       key={product.id}
                       onClick={() => !isOutOfStock && handleAddToCart(product)}
-                      className={`relative p-3.5 border rounded-2xl shadow-xs flex flex-col justify-between transition-all cursor-pointer select-none
-                        ${isOutOfStock 
+                      className={`p-3.5 border rounded-2xl shadow-xs flex flex-col justify-between transition-all select-none ${
+                        isOutOfStock 
                           ? 'bg-slate-100 border-slate-200 opacity-50 cursor-not-allowed' 
-                          : 'bg-white border-slate-200/80 hover:border-blue-500 hover:shadow-md active:scale-95'
-                        }`}
+                          : 'bg-white border-slate-200/80 hover:border-blue-500 hover:shadow-md active:scale-95 cursor-pointer'
+                      }`}
                     >
                       <div>
                         {product.company && (
@@ -481,9 +931,7 @@ export const POS = () => {
                             {product.company}
                           </span>
                         )}
-                        <div className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">
-                          {product.name}
-                        </div>
+                        <h4 className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">{product.name}</h4>
                       </div>
                       
                       <div className="mt-3 pt-2 border-t border-slate-100 flex items-end justify-between">
@@ -505,134 +953,173 @@ export const POS = () => {
                   );
                 })}
               </div>
-            );
-          })()}
-        </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* Right Column: Cart & Checkout */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-[60%] lg:h-full flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-sm z-20">
-        <div className="p-3 lg:p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-base lg:text-lg">
-            <ShoppingCart size={20} className="text-blue-600 shrink-0" />
-            <span>Draft Bill</span>
-            <Badge variant="neutral" className="ml-1 px-2 py-0.5 text-xs font-bold">{totals.totalItems}</Badge>
+      {/* --- RIGHT COLUMN: SUPERMARKET CHECKOUT STATION --- */}
+      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-[55%] lg:h-full flex flex-col bg-white border-l border-slate-200 shrink-0 shadow-lg z-20">
+        
+        {/* Bill Counter Header */}
+        <div className="p-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+          <div>
+            <div className="flex items-center gap-2">
+              <ShoppingCart size={18} className="text-blue-600" />
+              <span className="font-extrabold text-slate-900 text-base">Active Checkout Bill</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              Counter 01 • Cashier: {user?.name?.split(' ')[0] || 'Store'}
+            </p>
           </div>
-          {cart.length > 0 && (
-            <button 
-              type="button"
-              onClick={() => setIsClearConfirmOpen(true)}
-              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1 py-1.5 px-2.5 rounded-lg transition-colors border border-rose-200/60 shrink-0"
-            >
-              <Trash2 size={14} /> Clear
-            </button>
-          )}
+          <Badge variant="neutral" className="px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 text-slate-700">
+            {totals.totalItems} {totals.totalItems === 1 ? 'Item' : 'Items'}
+          </Badge>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 lg:p-4">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center space-y-4">
-              <ShoppingCart size={64} className="text-gray-200" />
-              <p>Your cart is empty.</p>
-              <p className="text-sm">Scan a barcode or search for a product to begin.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {cart.map((item) => (
-                <div key={item.cartItemId} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row gap-3 relative group">
-                  <button 
-                    onClick={() => removeFromCart(item.cartItemId)}
-                    className="absolute -top-2 -right-2 bg-red-100 text-red-600 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block shadow-sm hover:bg-red-200 z-10"
-                  >
-                    <X size={14} />
-                  </button>
-                  
-                  <div className="flex-1 pr-4">
-                    <h4 className="font-semibold text-gray-900 leading-tight">{item.name}</h4>
-                    <p className="text-xs text-gray-500 mt-1">{formatLKR(item.sellingPrice)} per {item.unit}</p>
+        {/* Bill Items Summary Pill in Touch Mode */}
+        {posMode === 'CATALOG' && (
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                <ShoppingCart size={40} className="text-slate-200 mb-2" />
+                <p className="text-xs">Your draft bill is empty.</p>
+              </div>
+            ) : (
+              cart.map(item => (
+                <div key={item.cartItemId} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-900 text-xs truncate">{item.name}</p>
+                    <p className="text-[11px] text-slate-400">{formatLKR(item.sellingPrice)} × {item.quantity}</p>
                   </div>
-                  
-                  <div className="flex items-center justify-between sm:justify-end gap-3 mt-2 sm:mt-0">
-                    <div className="flex items-center border border-gray-300 rounded-md bg-white">
-                      <button 
-                        onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
-                        className="w-8 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-l-md active:bg-gray-200"
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <input 
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantityDirect(item.cartItemId, e.target.value)}
-                        className="w-12 h-9 text-center font-medium text-gray-900 focus:outline-none border-x border-gray-300 hide-arrows"
-                        min="0"
-                        step="any"
-                      />
-                      <button 
-                        onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
-                        className="w-8 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-r-md active:bg-gray-200"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    
-                    <div className="font-bold text-gray-900 min-w-[90px] text-right text-lg lg:text-base">
-                      {formatLKR(item.lineSubtotal)}
-                    </div>
-
-                    <button 
-                      onClick={() => removeFromCart(item.cartItemId)}
-                      className="lg:hidden text-red-500 p-2 ml-1"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                  <div className="text-right shrink-0">
+                    <span className="font-black text-slate-900 text-xs block">{formatLKR(item.lineSubtotal)}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
 
-        <div className="bg-white border-t border-slate-200 p-4 lg:p-5 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] shrink-0 z-20">
-          <div className="space-y-2.5 mb-4 text-sm">
-            <div className="flex justify-between items-center text-slate-600 font-medium">
-              <span>Subtotal</span>
-              <span className="font-semibold text-slate-900">{formatLKR(totals.subtotal)}</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-slate-600 font-medium">
-              <span>Order Discount</span>
-              <div className="flex items-center gap-1 max-w-[130px]">
-                <span className="text-slate-400 text-xs font-semibold">Rs.</span>
-                <input 
-                  type="number" 
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                  placeholder="0.00"
-                  className="w-full text-right border-b border-slate-300 focus:border-blue-500 focus:outline-none font-semibold text-slate-900 py-0.5 text-sm hide-arrows"
-                />
+        {/* Supermarket Grand Total & Quick Tender Calculator */}
+        <div className="p-4 bg-white border-t border-slate-200 flex-1 flex flex-col justify-between overflow-y-auto">
+          
+          <div className="space-y-3">
+            {/* Subtotal & Discount Rows */}
+            <div className="space-y-1.5 text-xs font-semibold text-slate-600">
+              <div className="flex justify-between items-center">
+                <span>Subtotal ({totals.totalItems} items)</span>
+                <span className="font-extrabold text-slate-900 text-sm">{formatLKR(totals.subtotal)}</span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span>Order Discount</span>
+                <div className="flex items-center gap-1 max-w-[130px]">
+                  <span className="text-slate-400 text-xs font-semibold">Rs.</span>
+                  <input 
+                    type="number" 
+                    value={discount || ''}
+                    onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                    placeholder="0.00"
+                    className="w-full text-right border-b border-slate-300 focus:border-blue-500 focus:outline-none font-bold text-slate-900 py-0.5 text-sm hide-arrows"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-slate-400 text-[11px]">
+                <span>Taxes & VAT (0%)</span>
+                <span>LKR 0.00</span>
               </div>
             </div>
-            
-            <div className="border-t border-slate-200 pt-3 flex justify-between items-baseline mt-3">
-              <span className="text-slate-900 font-bold text-base">Total Due</span>
-              <span className="text-2xl lg:text-3xl font-black text-blue-700 tracking-tight whitespace-nowrap">
+
+            {/* High-Contrast Food City Total Box */}
+            <div className="p-4 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 rounded-2xl text-white shadow-md">
+              <div className="flex items-center justify-between text-xs text-blue-200 font-bold uppercase tracking-wider">
+                <span>Total Amount Due</span>
+                <span className="bg-blue-500/30 px-2 py-0.5 rounded text-[10px] text-white">LKR</span>
+              </div>
+              <div className="text-3xl xl:text-4xl font-black tracking-tight mt-1 truncate">
                 {formatLKR(totals.total)}
-              </span>
+              </div>
+            </div>
+
+            {/* Quick Cash Tender Calculator */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>Cash Tendered (Rs.)</span>
+                <input
+                  type="number"
+                  value={cashTendered}
+                  onChange={(e) => setCashTendered(e.target.value)}
+                  placeholder={totals.total ? totals.total.toString() : "0"}
+                  className="w-24 text-right px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black text-slate-900 focus:ring-1 focus:ring-blue-500 hide-arrows"
+                />
+              </div>
+
+              {/* Quick Bill Denominations */}
+              <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setCashTendered(totals.total.toString())}
+                  className="py-1 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 text-slate-700 transition-colors"
+                >
+                  Exact
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCashTendered('500')}
+                  className="py-1 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 text-slate-700 transition-colors"
+                >
+                  500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCashTendered('1000')}
+                  className="py-1 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 text-slate-700 transition-colors"
+                >
+                  1,000
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCashTendered('5000')}
+                  className="py-1 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 text-slate-700 transition-colors"
+                >
+                  5,000
+                </button>
+              </div>
+
+              {/* Real-time Change Due */}
+              {parsedTendered > 0 && (
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-xs font-extrabold">
+                  <span className={changeDue >= 0 ? "text-slate-600" : "text-rose-600"}>
+                    {changeDue >= 0 ? "Change Return:" : "Shortage:"}
+                  </span>
+                  <span className={changeDue >= 0 ? "text-emerald-700 text-sm font-black" : "text-rose-600 text-sm font-black"}>
+                    {formatLKR(Math.abs(changeDue))}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <Button 
-            className="w-full h-12 lg:h-13 text-base font-bold shadow-sm flex items-center justify-center gap-2 rounded-xl"
-            disabled={cart.length === 0 || isCheckingOut}
-            isLoading={isCheckingOut}
-            onClick={handleCheckoutPreview}
-          >
-            Proceed to Checkout
-          </Button>
+          {/* Checkout Button */}
+          <div className="mt-4 pt-2">
+            <Button
+              className="w-full h-13 text-base font-black shadow-md flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-98"
+              disabled={cart.length === 0 || isCheckingOut}
+              isLoading={isCheckingOut}
+              onClick={handleCheckoutPreview}
+            >
+              <CreditCard size={18} />
+              <span>Proceed to Checkout (F12)</span>
+            </Button>
+          </div>
+
         </div>
+
       </div>
-      
+
     </div>
   );
 };
