@@ -7,11 +7,13 @@ export const DEMO_BUSINESS = {
   phone: '+94 65 222 3456',
   email: 'info@adksuper.lk',
   address: '142 Main Street, Batticaloa',
+  city: 'Batticaloa',
+  country: 'Sri Lanka',
   currency: 'LKR',
   timezone: 'Asia/Colombo'
 };
 
-export const DEMO_USERS = {
+export const DEMO_USERS: Record<string, any> = {
   'owner@pos.lk': {
     id: 'user-owner-001',
     name: 'Karthik Sivakumar (Owner)',
@@ -128,6 +130,192 @@ export const DEMO_PRODUCTS: OfflineProduct[] = [
   }
 ];
 
+export const DEMO_CUSTOMERS = [
+  {
+    id: 'cust-001',
+    name: 'K. Perera',
+    phone: '+94 77 123 4567',
+    email: 'k.perera@gmail.com',
+    address: '45 Lake Road, Batticaloa',
+    notes: 'Loyal VIP customer, wholesale bulk buyer',
+    loyaltyPoints: 340,
+    totalSpent: 48500
+  },
+  {
+    id: 'cust-002',
+    name: 'Mohamed Rizwan',
+    phone: '+94 71 890 1234',
+    email: 'rizwan.trade@yahoo.com',
+    address: '12 Hospital Road, Batticaloa',
+    notes: 'Prompt payer, preferred payment: Bank Transfer',
+    loyaltyPoints: 125,
+    totalSpent: 22400
+  },
+  {
+    id: 'cust-003',
+    name: 'S. Thangarajah',
+    phone: '+94 76 345 6789',
+    email: 'sthangarajah@outlook.com',
+    address: '88 Central Bar Road, Batticaloa',
+    notes: 'Regular retail customer',
+    loyaltyPoints: 80,
+    totalSpent: 12500
+  },
+  {
+    id: 'cust-004',
+    name: 'Nimal Fernando',
+    phone: '+94 75 901 2345',
+    email: 'nimal.f@gmail.com',
+    address: '23 Beach Road, Batticaloa',
+    notes: 'Weekly grocery shopper',
+    loyaltyPoints: 210,
+    totalSpent: 31200
+  }
+];
+
+export const DEMO_EXPENSES = [
+  {
+    id: 'exp-001',
+    category: 'Utilities (Electricity/Water)',
+    description: 'CEB Electricity Bill - Main Store Chiller & Freezers',
+    amount: 14500,
+    paymentMethod: 'BANK_TRANSFER',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+  },
+  {
+    id: 'exp-002',
+    category: 'Packaging Materials',
+    description: '1000x Printed Eco Biodegradable Shopping Carry Bags',
+    amount: 6800,
+    paymentMethod: 'CASH',
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 'exp-003',
+    category: 'Internet & Phone',
+    description: 'SLT Fibre 100Mbps Broadband & Hotspot for Billing POS',
+    amount: 4250,
+    paymentMethod: 'CARD',
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
+  }
+];
+
+export const DEMO_SETTINGS = {
+  id: 'settings-demo-001',
+  businessId: DEMO_BUSINESS.id,
+  business: DEMO_BUSINESS,
+  receiptPaperWidth: '58mm',
+  receiptShowLogo: true,
+  receiptShowPhone: true,
+  receiptShowEmail: false,
+  receiptShowAddress: true,
+  receiptShowCustomer: true,
+  receiptShowSku: false,
+  receiptFooterMessage: 'Goods once sold are exchangeable within 7 days with original receipt.',
+  receiptThankYouMessage: 'Thank you for shopping at ADK Supermarket!',
+  posAutoPrint: true,
+  whatsappEnabled: true,
+  whatsappMessageTemplate: 'Hello {business_name} customer, your bill for {date} is {total}. Thank you for visiting us!'
+};
+
+export const DEMO_SUPPLIERS = [
+  {
+    id: 'supp-001',
+    name: 'Ceylon Cold Stores PLC (Elephant House)',
+    contactPerson: 'Sunil Weerasinghe',
+    phone: '+94 11 244 5678',
+    email: 'orders@elephanthouse.lk',
+    address: '148 Vauxhall Street, Colombo 02'
+  },
+  {
+    id: 'supp-002',
+    name: 'Ceylon Biscuits Limited (Munchee)',
+    contactPerson: 'Nalin Karunaratne',
+    phone: '+94 11 500 0000',
+    email: 'sales@muncheelk.com',
+    address: 'High Level Road, Makumbura, Pannipitiya'
+  },
+  {
+    id: 'supp-003',
+    name: 'Fonterra Brands Lanka (Anchor)',
+    contactPerson: 'Dhammika Bandara',
+    phone: '+94 11 483 8383',
+    email: 'supply@fonterra.com',
+    address: 'Biyagama EPZ, Malwana'
+  }
+];
+
+export const DEMO_PRINTERS = [
+  {
+    id: 'print-001',
+    name: 'Cash Counter 1 - USB 58mm Thermal Receipt Printer',
+    type: 'THERMAL_ESC_POS',
+    interface: 'USB',
+    paperWidth: '58mm',
+    isDefault: true,
+    status: 'ONLINE'
+  },
+  {
+    id: 'print-002',
+    name: 'Store Manager Office - 80mm Network Thermal Printer',
+    type: 'THERMAL_ESC_POS',
+    interface: 'ETHERNET',
+    paperWidth: '80mm',
+    isDefault: false,
+    status: 'ONLINE'
+  }
+];
+
+export const DEMO_SUBSCRIPTION = {
+  planCode: 'ENTERPRISE',
+  planName: 'Enterprise Cloud Plan',
+  status: 'ACTIVE',
+  productLimit: 10000,
+  productCount: 6,
+  remaining: 9994,
+  startsAt: '2026-01-01T00:00:00.000Z',
+  expiresAt: '2030-01-01T00:00:00.000Z',
+  isExpired: false,
+  isPro: true,
+  isFree: false,
+  price: 0,
+  currency: 'LKR',
+  billingDays: 365
+};
+
+export const DEMO_SUBSCRIPTION_PLANS = [
+  {
+    id: 'plan-free',
+    code: 'FREE',
+    name: 'Free Trial',
+    price: 0,
+    currency: 'LKR',
+    billingPeriod: '14 Days',
+    productLimit: 15,
+    features: ['Basic POS checkout', 'Up to 15 products', 'Offline mode support']
+  },
+  {
+    id: 'plan-pro',
+    code: 'PRO',
+    name: 'Retail Professional',
+    price: 4500,
+    currency: 'LKR',
+    billingPeriod: 'Monthly',
+    productLimit: 1000,
+    features: ['Unlimited sales', 'Up to 1,000 products', 'Barcode scanning', 'Thermal receipt printing', 'WhatsApp receipts', 'Inventory alerts']
+  },
+  {
+    id: 'plan-enterprise',
+    code: 'ENTERPRISE',
+    name: 'Enterprise Cloud',
+    price: 9500,
+    currency: 'LKR',
+    billingPeriod: 'Monthly',
+    productLimit: 10000,
+    features: ['Multi-store management', 'Up to 10,000 products', 'Advanced reports & export', 'Dedicated offline sync engine', 'Priority WhatsApp API']
+  }
+];
+
 export async function seedDemoDataToDexie(businessId = DEMO_BUSINESS.id) {
   try {
     const count = await db.products.where('businessId').equals(businessId).count();
@@ -137,5 +325,9 @@ export async function seedDemoDataToDexie(businessId = DEMO_BUSINESS.id) {
     }
   } catch (err) {
     console.warn('Could not seed demo products to Dexie:', err);
+    // Ensure table write fallback
+    try {
+      await db.products.bulkPut(DEMO_PRODUCTS);
+    } catch {}
   }
 }

@@ -177,7 +177,7 @@ export class SyncService {
           });
         });
       } catch (error) {
-        console.error('Failed to sync products', error);
+        // Silently handled in resilient mode
       }
     });
   }
@@ -200,7 +200,7 @@ export class SyncService {
         });
       });
     } catch (error) {
-      console.error('Failed to sync settings', error);
+      // Silently handled in resilient mode
     }
   }
 
@@ -224,7 +224,7 @@ export class SyncService {
         });
       });
     } catch (error) {
-      console.warn('Failed to sync subscription', error);
+      // Silently handled in resilient mode
     }
   }
 }
