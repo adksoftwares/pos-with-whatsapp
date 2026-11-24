@@ -28,7 +28,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   initialAmountTendered = '',
   onSuccess
 }) => {
-  const [step, setStep] = useState<'VALIDATING' | 'PAYMENT' | 'SUCCESS'>('VALIDATING');
+  const [step, setStep] = useState<'VALIDATING' | 'PAYMENT' | 'ERROR' | 'SUCCESS'>('VALIDATING');
   const [serverTotals, setServerTotals] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [amountTendered, setAmountTendered] = useState<string>('');
@@ -100,7 +100,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       
       setStep('PAYMENT');
     } catch (error: any) {
-      // Fallback calculation for offline / network-isolated mode
+      // Never bypass a server-side stock or pricing validation error while online.
+      if (isOnline) {
+        console.error('Cart validation failed:', error);
+        setServerTotals(null);
+        setStep('ERROR');
+        toast.error('Could not validate this bill. Please retry before taking payment.');
+        return;
+      }
+
+      // Offline fallback is available only when the device is offline.
       const subtotal = cartItems.reduce((sum, item) => sum + (item.sellingPrice * item.quantity - item.lineDiscount), 0);
       const tax = 0;
       const grandTotal = subtotal - orderDiscount + tax;
@@ -225,6 +234,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     <div className="flex flex-col items-center justify-center py-12">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
       <p className="text-gray-600 font-medium">Validating cart against current stock...</p>
+    </div>
+  );
+
+  const renderError = () => (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center mb-3">
+        <CreditCard size={23} />
+      </div>
+      <h2 className="text-lg font-bold text-gray-900 mb-2">Bill validation failed</h2>
+      <p className="text-sm text-gray-500 max-w-md mb-5">Stock and pricing could not be confirmed. No payment has been taken. Retry validation before completing this sale.</p>
+      <div className="flex gap-3">
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button onClick={validateCart}>Retry validation</Button>
+      </div>
     </div>
   );
 
@@ -432,6 +455,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     >
       {step === 'VALIDATING' && renderValidating()}
       {step === 'PAYMENT' && renderPayment()}
+      {step === 'ERROR' && renderError()}
       {step === 'SUCCESS' && renderSuccess()}
     </Modal>
   );
