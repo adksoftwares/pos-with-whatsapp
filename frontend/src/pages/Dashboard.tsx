@@ -94,18 +94,18 @@ export const Dashboard: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Today's Sales */}
         <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
-          <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Today's Sales</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
-                <TrendingUp size={20} />
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Today's Sales</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
+                <TrendingUp size={19} />
               </div>
             </div>
             <div className="mt-3">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+              <h4 className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
                 {formatLKR(summary.todaySales)}
               </h4>
               <p className="text-xs text-slate-400 font-medium mt-1">Live store revenue</p>
@@ -115,15 +115,15 @@ export const Dashboard: React.FC = () => {
         
         {/* Orders Today */}
         <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
-          <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders Today</span>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-xs">
-                <ShoppingCart size={20} />
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Orders Today</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-xs shrink-0">
+                <ShoppingCart size={19} />
               </div>
             </div>
             <div className="mt-3">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h4 className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 tracking-tight">
                 {summary.todayOrders}
               </h4>
               <p className="text-xs text-slate-400 font-medium mt-1">Completed bills</p>
@@ -133,15 +133,15 @@ export const Dashboard: React.FC = () => {
 
         {/* Items Sold Today */}
         <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
-          <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Sold</span>
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-xs">
-                <Package size={20} />
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Items Sold</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-xs shrink-0">
+                <Package size={19} />
               </div>
             </div>
             <div className="mt-3">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h4 className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 tracking-tight">
                 {summary.todayItemsSold}
               </h4>
               <p className="text-xs text-slate-400 font-medium mt-1">Checked out units</p>
@@ -151,15 +151,15 @@ export const Dashboard: React.FC = () => {
 
         {/* Average Order Value */}
         <Card className="hover:shadow-sm transition-all border-slate-200/80 bg-white">
-          <CardContent className="p-5 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Order Value</span>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-xs">
-                <Activity size={20} />
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Avg Order Value</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-xs shrink-0">
+                <Activity size={19} />
               </div>
             </div>
             <div className="mt-3">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+              <h4 className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
                 {formatLKR(summary.averageOrderValue)}
               </h4>
               <p className="text-xs text-slate-400 font-medium mt-1">Per transaction average</p>
