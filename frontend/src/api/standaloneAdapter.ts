@@ -414,6 +414,9 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
         quantity: qty,
         unitPrice: price,
         lineDiscount,
+        lineTotal,
+        netLineTotal: lineTotal,
+        finalTotal: lineTotal,
         subtotal: lineTotal
       };
     });

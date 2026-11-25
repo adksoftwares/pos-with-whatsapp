@@ -59,20 +59,27 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
           createdAt: data.completedAt || data.createdAt,
           paymentMethod: payment?.method || 'CASH',
           status: payment?.status || 'PAID',
-          items: data.items.map((i: any) => ({
-            id: i.id || i.productId,
-            companyName: i.company || i.product?.company || 'Uncategorized',
-            productName: i.productName || i.name,
-            code: i.sku || i.barcode,
-            discount: Number(i.lineDiscount) || 0,
-            quantity: Number(i.quantity),
-            unitPrice: Number(i.unitPrice),
-            finalTotal: Number(i.lineTotal || i.netLineTotal)
-          })),
-          subtotal: Number(data.subtotal),
-          totalDiscount: Number(data.discountTotal || data.orderDiscount || 0),
-          grandTotal: Number(data.grandTotal),
-          amountReceived: payment?.amount !== undefined ? Number(payment.amount) : Number(data.cashTendered),
+          items: data.items.map((i: any) => {
+            const qty = Number(i.quantity) || 1;
+            const price = Number(i.unitPrice ?? i.price ?? 0);
+            const disc = Number(i.discount ?? i.lineDiscount ?? 0);
+            const calculatedTotal = Math.max(0, qty * price - disc);
+            const finalTotal = Number(i.finalTotal ?? i.lineTotal ?? i.netLineTotal ?? i.subtotal ?? calculatedTotal);
+            return {
+              id: i.id || i.productId,
+              companyName: i.company || i.product?.company || 'Uncategorized',
+              productName: i.productName || i.name || 'Product',
+              code: i.sku || i.barcode || '',
+              discount: disc,
+              quantity: qty,
+              unitPrice: price,
+              finalTotal: isNaN(finalTotal) ? calculatedTotal : finalTotal
+            };
+          }),
+          subtotal: isNaN(Number(data.subtotal)) ? Number(data.grandTotal) || 0 : Number(data.subtotal),
+          totalDiscount: Number(data.discountTotal || data.orderDiscount || data.discountAmount || 0),
+          grandTotal: Number(data.grandTotal) || 0,
+          amountReceived: payment?.amount !== undefined ? Number(payment.amount) : Number(data.cashTendered || data.grandTotal || 0),
           balance: Number(payment?.changeGiven || data.changeAmount || 0)
         });
       }
