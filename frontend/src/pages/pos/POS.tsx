@@ -34,6 +34,7 @@ interface CartItem extends Product {
   cartItemId: string;
   quantity: number;
   lineDiscount: number;
+  lineDiscountPercent?: number;
   lineSubtotal: number;
 }
 
@@ -47,6 +48,7 @@ interface HeldBill {
   items: CartItem[];
   subtotal: number;
   discount: number;
+  discountMode?: 'AMOUNT' | 'PERCENT';
   total: number;
   totalItems: number;
 }
@@ -80,10 +82,14 @@ export const POS = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantityDraft, setQuantityDraft] = useState('1');
+  const quantityInputRef = useRef<HTMLInputElement>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [catalog, setCatalog] = useState<any[]>([]);
   
+  const [discountMode, setDiscountMode] = useState<'AMOUNT' | 'PERCENT'>(() => localStorage.getItem('pos_draft_discount_mode') === 'PERCENT' ? 'PERCENT' : 'AMOUNT');
   const [discount, setDiscount] = useState<number>(() => {
     const saved = Number(localStorage.getItem('pos_draft_discount') || 0);
     return Number.isFinite(saved) && saved > 0 ? saved : 0;
@@ -128,6 +134,7 @@ export const POS = () => {
   useEffect(() => {
     localStorage.setItem('pos_draft_cart', JSON.stringify(cart));
     localStorage.setItem('pos_draft_discount', discount.toString());
+    localStorage.setItem('pos_draft_discount_mode', discountMode);
   }, [cart, discount]);
 
   useEffect(() => {
@@ -182,7 +189,8 @@ export const POS = () => {
       subtotal += net;
     });
 
-    const orderDiscount = Math.min(Number(discount) || 0, subtotal);
+    const requestedDiscount = discountMode === 'PERCENT' ? subtotal * Math.min(100, Math.max(0, Number(discount) || 0)) / 100 : Number(discount) || 0;
+    const orderDiscount = Math.min(requestedDiscount, subtotal);
     const total = Math.max(0, subtotal - orderDiscount);
     const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity), 0);
 
@@ -212,9 +220,7 @@ export const POS = () => {
              (p.sku && p.sku.trim().toLowerCase() === term.trim().toLowerCase())
       );
       if (exactMatch) {
-        handleAddToCart(exactMatch);
-        setSearchInput('');
-        setSearchResults([]);
+        setSearchResults([exactMatch]);
         setIsSearching(false);
         return;
       }
@@ -251,7 +257,11 @@ export const POS = () => {
     );
 
     if (localExact) {
-      handleAddToCart(localExact);
+      openQuantityDialog(localExact);
+      return;
+    }
+    if (searchResults.length > 0) {
+      openQuantityDialog(searchResults[0]);
       return;
     }
 
@@ -260,7 +270,7 @@ export const POS = () => {
       const res = await apiClient.get(`/products/barcode/${encodeURIComponent(term)}`);
       const product = res.data?.data || res.data;
       if (product?.id) {
-        handleAddToCart(product);
+        openQuantityDialog(product);
         return;
       }
     } catch {
@@ -278,12 +288,12 @@ export const POS = () => {
              p.name.trim().toLowerCase() === term.toLowerCase()
       );
       if (exact) {
-        handleAddToCart(exact);
+        openQuantityDialog(exact);
       } else if (products.length === 1) {
-        handleAddToCart(products[0]);
+        openQuantityDialog(products[0]);
       } else if (products.length > 1) {
         setSearchResults(products);
-        toast('Select the correct product from the search results.');
+        toast('Select a product, enter quantity, then confirm.');
       } else {
         toast.error(`No product found for "${term}"`);
       }
@@ -300,7 +310,7 @@ export const POS = () => {
       const barcodeRes = await apiClient.get(`/products/barcode/${encodeURIComponent(code.trim())}`);
       const product = barcodeRes.data?.data || barcodeRes.data;
       if (product) {
-        handleAddToCart(product);
+        openQuantityDialog(product);
         toast.success(`Scanned: ${product.name}`);
       } else {
         toast.error('Product not found in catalog');
@@ -309,7 +319,7 @@ export const POS = () => {
       // Fallback to local catalog
       const local = catalog.find(p => p.barcode === code.trim());
       if (local) {
-        handleAddToCart(local);
+        openQuantityDialog(local);
         toast.success(`Scanned: ${local.name}`);
       } else {
         toast.error('Barcode not found in catalog');
@@ -317,15 +327,24 @@ export const POS = () => {
     }
   };
 
-  const handleAddToCart = (product: Product) => {
+  const openQuantityDialog = (product: Product) => {
+    if (product.status !== 'ACTIVE') { toast.error(`${product.name} is INACTIVE and cannot be sold.`); return; }
+    setSelectedProduct(product);
+    setQuantityDraft('1');
+    setSearchResults([]);
+    setTimeout(() => quantityInputRef.current?.select(), 50);
+  };
+
+  const handleAddToCart = (product: Product, quantity = 1) => {
     if (product.status !== 'ACTIVE') {
       toast.error(`${product.name} is INACTIVE and cannot be sold.`);
       return;
     }
 
+    if (!Number.isFinite(quantity) || quantity <= 0) { toast.error('Enter a valid quantity.'); return; }
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
-      const newQty = existing ? existing.quantity + 1 : 1;
+      const newQty = existing ? existing.quantity + quantity : quantity;
       
       if (newQty > Number(product.stockQuantity)) {
         toast.error(`Stock limit reached for ${product.name}. Available: ${product.stockQuantity}`);
@@ -338,7 +357,8 @@ export const POS = () => {
             ? { 
                 ...item, 
                 quantity: newQty, 
-                lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - item.lineDiscount)
+                lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - (newQty * item.sellingPrice * (Number((item as any).lineDiscountPercent) || 0) / 100)),
+                lineDiscount: newQty * item.sellingPrice * (Number((item as any).lineDiscountPercent) || 0) / 100
               }
             : item
         );
@@ -347,15 +367,35 @@ export const POS = () => {
       return [...prev, {
         ...product,
         cartItemId: Math.random().toString(36).substr(2, 9),
-        quantity: 1,
+        quantity,
         lineDiscount: 0,
-        lineSubtotal: Number(product.sellingPrice)
+        lineDiscountPercent: 0,
+        lineSubtotal: Number(product.sellingPrice) * quantity
       }];
     });
 
     setSearchInput('');
     setSearchResults([]);
+    setSelectedProduct(null);
+    setQuantityDraft('1');
     if (searchInputRef.current) searchInputRef.current.focus();
+  };
+
+  const confirmProductQuantity = () => {
+    if (!selectedProduct) return;
+    const quantity = Number(quantityDraft);
+    if (!Number.isFinite(quantity) || quantity <= 0 || quantity > Number(selectedProduct.stockQuantity)) { toast.error('Enter a valid quantity within available stock.'); return; }
+    handleAddToCart(selectedProduct, quantity);
+  };
+
+  const updateLineDiscountPercent = (cartItemId: string, raw: string) => {
+    const percent = Math.min(100, Math.max(0, Number(raw) || 0));
+    setCart(prev => prev.map(item => {
+      if (item.cartItemId !== cartItemId) return item;
+      const gross = Number(item.sellingPrice) * Number(item.quantity);
+      const lineDiscount = gross * percent / 100;
+      return { ...item, lineDiscount, lineDiscountPercent: percent, lineSubtotal: gross - lineDiscount };
+    }));
   };
 
   const updateQuantity = (cartItemId: string, newQty: number) => {
@@ -372,8 +412,9 @@ export const POS = () => {
         }
         return { 
           ...item, 
-          quantity: newQty, 
-          lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - item.lineDiscount) 
+          quantity: newQty,
+          lineDiscount: newQty * item.sellingPrice * (Number(item.lineDiscountPercent) || 0) / 100,
+          lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - (newQty * item.sellingPrice * (Number(item.lineDiscountPercent) || 0) / 100)) 
         };
       }
       return item;
@@ -397,6 +438,7 @@ export const POS = () => {
   const clearCart = () => {
     setCart([]);
     setDiscount(0);
+    setDiscountMode('AMOUNT');
     setCashTendered('');
     setIsClearConfirmOpen(false);
   };
@@ -416,6 +458,7 @@ export const POS = () => {
       items: [...cart],
       subtotal: totals.subtotal,
       discount,
+      discountMode,
       total: totals.total,
       totalItems: totals.totalItems
     };
@@ -426,6 +469,7 @@ export const POS = () => {
     setCashTendered('');
     localStorage.removeItem('pos_draft_cart');
     localStorage.removeItem('pos_draft_discount');
+    localStorage.removeItem('pos_draft_discount_mode');
     toast.success(`Bill ${newHold.billNumber} held! Counter ready for next customer.`);
   };
 
@@ -451,6 +495,7 @@ export const POS = () => {
 
     setCart(bill.items);
     setDiscount(bill.discount);
+    setDiscountMode(bill.discountMode || 'AMOUNT');
     setIsRecallModalOpen(false);
     toast.success(`Recalled ${bill.billNumber} (${bill.items.length} items)`);
   };
@@ -483,6 +528,20 @@ export const POS = () => {
   return (
     <>
       
+      {selectedProduct && (
+        <Modal isOpen={!!selectedProduct} onClose={() => setSelectedProduct(null)} title="Add product to bill" maxWidth="sm">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="font-bold text-slate-900">{selectedProduct.name}</div>
+              <div className="mt-1 flex justify-between text-xs text-slate-500"><span>{selectedProduct.barcode || selectedProduct.sku || 'No barcode'}</span><span>Available: {selectedProduct.stockQuantity}</span></div>
+              <div className="mt-2 text-lg font-black text-blue-800">{formatLKR(selectedProduct.sellingPrice)} <span className="text-xs font-medium text-slate-500">/ {selectedProduct.unit || 'unit'}</span></div>
+            </div>
+            <div><label htmlFor="product-quantity" className="mb-1 block text-sm font-semibold text-slate-700">Quantity</label><input ref={quantityInputRef} id="product-quantity" type="number" min="0.001" step="any" inputMode="decimal" autoFocus value={quantityDraft} onChange={e => setQuantityDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmProductQuantity(); } }} className="h-12 w-full rounded-md border-2 border-blue-600 px-3 text-xl font-bold outline-none focus:ring-2 focus:ring-blue-100"/></div>
+            <div className="flex gap-2"><button type="button" onClick={() => setSelectedProduct(null)} className="h-11 flex-1 rounded-md border border-slate-200 font-semibold text-slate-600">Cancel</button><button type="button" onClick={confirmProductQuantity} className="h-11 flex-1 rounded-md bg-blue-700 text-white font-bold hover:bg-blue-800">OK · Add to bill</button></div>
+          </div>
+        </Modal>
+      )}
+
       {/* Modals */}
       {completedOrderId && (
         <ReceiptPreviewModal
@@ -687,7 +746,7 @@ export const POS = () => {
                     <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input ref={searchInputRef} value={searchInput} onChange={e => setSearchInput(e.target.value)} autoComplete="off" placeholder="Scan barcode or type product name..." className="h-10 w-full pl-9 pr-3 border-2 border-blue-700 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-200" />
                     {searchResults.length > 0 && <div className="absolute z-40 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-64 overflow-y-auto">
-                      {searchResults.map(prod => <button type="button" key={prod.id} onClick={() => handleAddToCart(prod)} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b border-slate-100 flex justify-between gap-3">
+                      {searchResults.map(prod => <button type="button" key={prod.id} onClick={() => openQuantityDialog(prod)} className="w-full text-left px-3 py-2.5 hover:bg-blue-50 border-b border-slate-100 flex justify-between gap-3">
                         <span className="min-w-0"><span className="block text-sm font-semibold truncate">{prod.name}</span><span className="text-[10px] text-slate-400">{prod.barcode || prod.sku || 'No barcode'}</span></span>
                         <span className="font-bold text-sm whitespace-nowrap">{formatLKR(prod.sellingPrice)}</span>
                       </button>)}
@@ -735,7 +794,7 @@ export const POS = () => {
                         <button type="button" onClick={() => updateQuantity(item.cartItemId,item.quantity+1)} className="h-7 w-7 border border-slate-200 rounded hover:bg-slate-100"><Plus size={12} className="mx-auto"/></button>
                       </div></td>
                       <td className="px-3 py-3 text-right tabular-nums">{formatLKR(item.sellingPrice)}</td>
-                      <td className="px-3 py-3 text-right tabular-nums text-slate-500">{formatLKR(item.lineDiscount)}</td>
+                      <td className="px-3 py-2 text-right"><div className="inline-flex items-center gap-1"><input aria-label={`Discount percentage for ${item.name}`} type="number" min="0" max="100" step="0.01" value={Number((item as any).lineDiscountPercent) || ''} onChange={e => updateLineDiscountPercent(item.cartItemId,e.target.value)} className="w-14 h-7 text-right border border-slate-200 rounded px-1 text-xs"/><span className="text-[10px] text-slate-400">%</span></div><div className="text-[10px] text-rose-600">{formatLKR(item.lineDiscount)}</div></td>
                       <td className="px-3 py-3 text-right font-bold tabular-nums">{formatLKR(Math.max(0, Number(item.sellingPrice) * Number(item.quantity) - Number(item.lineDiscount)))}</td>
                       <td className="px-3 py-3"><button type="button" onClick={() => removeFromCart(item.cartItemId)} title="Remove item" className="text-rose-500 hover:bg-rose-50 rounded p-1"><Trash2 size={15}/></button></td>
                     </tr>)}
@@ -768,7 +827,7 @@ export const POS = () => {
                 <div className="flex justify-between"><span className="text-slate-500">Total items</span><strong>{cart.length}</strong></div>
                 <div className="flex justify-between"><span className="text-slate-500">Total quantity</span><strong>{totals.totalItems}</strong></div>
                 <div className="flex justify-between"><span className="text-slate-500">Sub total</span><strong>{formatLKR(totals.subtotal)}</strong></div>
-                <div className="flex justify-between items-center gap-3"><label htmlFor="order-discount" className="text-slate-500">Discount</label><div className="flex items-center gap-1"><span className="text-xs text-slate-400">LKR</span><input id="order-discount" type="number" min="0" value={discount || ''} onChange={e => setDiscount(Math.min(totals.subtotal,Math.max(0,parseFloat(e.target.value)||0)))} placeholder="0.00" className="w-28 text-right border border-slate-200 rounded px-2 py-1.5 text-sm font-semibold"/></div></div>
+                <div className="flex justify-between items-center gap-2"><label htmlFor="order-discount" className="text-slate-500">Overall discount</label><div className="flex items-center gap-1"><select aria-label="Overall discount type" value={discountMode} onChange={e => setDiscountMode(e.target.value as 'AMOUNT' | 'PERCENT')} className="border border-slate-200 rounded px-1.5 py-1.5 text-xs bg-white"><option value="AMOUNT">LKR</option><option value="PERCENT">%</option></select><input id="order-discount" type="number" min="0" max={discountMode === 'PERCENT' ? 100 : totals.subtotal} value={discount || ''} onChange={e => setDiscount(Math.min(discountMode === 'PERCENT' ? 100 : totals.subtotal,Math.max(0,parseFloat(e.target.value)||0)))} placeholder="0" className="w-20 text-right border border-slate-200 rounded px-2 py-1.5 text-sm font-semibold"/></div></div>
                 <div className="flex justify-between text-slate-500"><span>Tax / VAT</span><span className="text-[11px] font-medium">Confirmed at checkout</span></div>
               </div>
               <div className="rounded-lg bg-[#123b70] text-white p-4 shadow-inner">
