@@ -34,6 +34,7 @@ interface CartItem extends Product {
   cartItemId: string;
   quantity: number;
   lineDiscount: number;
+  lineDiscountPercent?: number;
   lineSubtotal: number;
 }
 
@@ -87,7 +88,7 @@ export const POS = () => {
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [catalog, setCatalog] = useState<any[]>([]);
   
-  const [discountMode, setDiscountMode] = useState<'AMOUNT' | 'PERCENT'>('AMOUNT');
+  const [discountMode, setDiscountMode] = useState<'AMOUNT' | 'PERCENT'>(() => localStorage.getItem('pos_draft_discount_mode') === 'PERCENT' ? 'PERCENT' : 'AMOUNT');
   const [discount, setDiscount] = useState<number>(() => {
     const saved = Number(localStorage.getItem('pos_draft_discount') || 0);
     return Number.isFinite(saved) && saved > 0 ? saved : 0;
@@ -132,6 +133,7 @@ export const POS = () => {
   useEffect(() => {
     localStorage.setItem('pos_draft_cart', JSON.stringify(cart));
     localStorage.setItem('pos_draft_discount', discount.toString());
+    localStorage.setItem('pos_draft_discount_mode', discountMode);
   }, [cart, discount]);
 
   useEffect(() => {
@@ -267,7 +269,7 @@ export const POS = () => {
       const res = await apiClient.get(`/products/barcode/${encodeURIComponent(term)}`);
       const product = res.data?.data || res.data;
       if (product?.id) {
-        handleAddToCart(product);
+        openQuantityDialog(product);
         return;
       }
     } catch {
@@ -364,7 +366,7 @@ export const POS = () => {
       return [...prev, {
         ...product,
         cartItemId: Math.random().toString(36).substr(2, 9),
-        quantity: 1,
+        quantity,
         lineDiscount: 0,
         lineDiscountPercent: 0,
         lineSubtotal: Number(product.sellingPrice) * quantity
@@ -409,8 +411,9 @@ export const POS = () => {
         }
         return { 
           ...item, 
-          quantity: newQty, 
-          lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - item.lineDiscount) 
+          quantity: newQty,
+          lineDiscount: newQty * item.sellingPrice * (Number(item.lineDiscountPercent) || 0) / 100,
+          lineSubtotal: Math.max(0, (newQty * item.sellingPrice) - (newQty * item.sellingPrice * (Number(item.lineDiscountPercent) || 0) / 100)) 
         };
       }
       return item;
@@ -464,6 +467,7 @@ export const POS = () => {
     setCashTendered('');
     localStorage.removeItem('pos_draft_cart');
     localStorage.removeItem('pos_draft_discount');
+    localStorage.removeItem('pos_draft_discount_mode');
     toast.success(`Bill ${newHold.billNumber} held! Counter ready for next customer.`);
   };
 
