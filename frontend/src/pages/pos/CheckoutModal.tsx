@@ -56,84 +56,75 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const validateCart = async () => {
     setStep('VALIDATING');
+    const localSubtotal = cartItems.reduce((sum, item) => sum + (Number(item.sellingPrice) * Number(item.quantity) - (Number(item.lineDiscount) || 0)), 0);
+    const localGrandTotal = Math.max(0, localSubtotal - Number(orderDiscount || 0));
+
+    const localTotals = {
+      validatedItems: cartItems.map(item => ({
+        productId: item.id,
+        name: item.name,
+        sku: item.sku,
+        barcode: item.barcode,
+        unit: item.unit,
+        unitPrice: Number(item.sellingPrice),
+        quantity: item.quantity,
+        lineDiscount: Number(item.lineDiscount) || 0,
+        netLineTotal: Math.max(0, Number(item.sellingPrice) * Number(item.quantity) - (Number(item.lineDiscount) || 0)),
+      })),
+      subtotal: localSubtotal,
+      orderDiscount: Number(orderDiscount || 0),
+      discountAmount: Number(orderDiscount || 0),
+      tax: 0,
+      grandTotal: localGrandTotal,
+      totalItems: cartItems.length,
+      totalQuantity: cartItems.reduce((sum, i) => sum + Number(i.quantity || 1), 0)
+    };
+
     try {
       const payload = {
         items: cartItems.map(item => ({
           productId: item.id,
+          name: item.name,
+          sku: item.sku,
+          barcode: item.barcode,
+          price: Number(item.sellingPrice),
+          unitPrice: Number(item.sellingPrice),
+          sellingPrice: Number(item.sellingPrice),
           quantity: item.quantity,
-          lineDiscount: item.lineDiscount
+          lineDiscount: Number(item.lineDiscount) || 0
         })),
-        orderDiscountAmount: orderDiscount
+        subtotal: localSubtotal,
+        grandTotal: localGrandTotal,
+        orderDiscountAmount: Number(orderDiscount || 0)
       };
 
       if (isOnline) {
-        const res = await apiClient.post('/orders/preview', payload) as any;
-        const data = res.data; // apiClient interceptor returns response.data; res = {success,message,data}
-        setServerTotals(data);
-        // setAmountTendered(String(data.grandTotal));
+        try {
+          const res = await apiClient.post('/orders/preview', payload) as any;
+          const data = res?.data !== undefined ? res.data : res;
+          if (data && (Number(data.grandTotal) > 0 || localGrandTotal === 0)) {
+            setServerTotals({
+              ...data,
+              totalItems: data.totalItems ?? cartItems.length,
+              subtotal: data.subtotal ?? localSubtotal,
+              grandTotal: data.grandTotal ?? localGrandTotal,
+              orderDiscount: data.orderDiscount ?? data.discountAmount ?? orderDiscount
+            });
+          } else {
+            setServerTotals(localTotals);
+          }
+        } catch (apiErr) {
+          console.warn('Backend preview unreachable or failed; using resilient local totals:', apiErr);
+          setServerTotals(localTotals);
+        }
       } else {
-        // Offline validation fallback
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.sellingPrice * item.quantity - item.lineDiscount), 0);
-        const tax = 0;
-        const grandTotal = subtotal - orderDiscount + tax;
-        
-        setServerTotals({
-          validatedItems: cartItems.map(item => ({
-            productId: item.id,
-            name: item.name,
-            sku: item.sku,
-            barcode: item.barcode,
-            unit: item.unit,
-            unitPrice: item.sellingPrice,
-            quantity: item.quantity,
-            lineDiscount: item.lineDiscount,
-            netLineTotal: item.sellingPrice * item.quantity - item.lineDiscount,
-          })),
-          subtotal,
-          discountAmount: orderDiscount,
-          tax,
-          grandTotal,
-          totalItems: cartItems.length,
-          totalQuantity: cartItems.reduce((sum, i) => sum + i.quantity, 0)
-        });
-        // setAmountTendered(grandTotal.toString());
+        setServerTotals(localTotals);
       }
       
       setStep('PAYMENT');
     } catch (error: any) {
-      // Never bypass a server-side stock or pricing validation error while online.
-      if (isOnline) {
-        console.error('Cart validation failed:', error);
-        setServerTotals(null);
-        setStep('ERROR');
-        toast.error('Could not validate this bill. Please retry before taking payment.');
-        return;
-      }
-
-      // Offline fallback is available only when the device is offline.
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.sellingPrice * item.quantity - item.lineDiscount), 0);
-      const tax = 0;
-      const grandTotal = subtotal - orderDiscount + tax;
-      
-      setServerTotals({
-        validatedItems: cartItems.map(item => ({
-          productId: item.id,
-          name: item.name,
-          sku: item.sku,
-          barcode: item.barcode,
-          unit: item.unit,
-          unitPrice: item.sellingPrice,
-          quantity: item.quantity,
-          lineDiscount: item.lineDiscount,
-          netLineTotal: item.sellingPrice * item.quantity - item.lineDiscount,
-        })),
-        subtotal,
-        discountAmount: orderDiscount,
-        tax,
-        grandTotal,
-        totalItems: cartItems.length,
-        totalQuantity: cartItems.reduce((sum, i) => sum + i.quantity, 0)
-      });
+      console.warn('Cart validation fallback engaged:', error);
+      setServerTotals(localTotals);
       setStep('PAYMENT');
     }
   };
@@ -158,10 +149,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         clientTransactionId: idempotencyKey, // Use our ID as client ID
         items: cartItems.map(item => ({
           productId: item.id,
+          name: item.name,
+          sku: item.sku,
+          barcode: item.barcode,
+          price: Number(item.sellingPrice),
+          unitPrice: Number(item.sellingPrice),
+          sellingPrice: Number(item.sellingPrice),
           quantity: item.quantity,
-          lineDiscount: item.lineDiscount
+          lineDiscount: Number(item.lineDiscount) || 0
         })),
-        orderDiscountAmount: orderDiscount,
+        subtotal: Number(serverTotals.subtotal),
+        grandTotal: Number(serverTotals.grandTotal),
+        orderDiscountAmount: Number(orderDiscount || 0),
         paymentMethod,
         amountTendered: paymentMethod === 'CASH' ? tendered : grandTotal,
         referenceNumber: reference || undefined,

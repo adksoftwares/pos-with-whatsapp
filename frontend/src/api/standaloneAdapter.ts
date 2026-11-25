@@ -360,26 +360,34 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
   if (urlPath === 'orders/preview' && method === 'post') {
     const items = body.items || [];
     let subtotal = 0;
+    const allProducts = await db.products.toArray().catch(() => []);
     const validatedItems = items.map((it: any) => {
-      const price = Number(it.price || it.sellingPrice || 0);
+      const foundProd = allProducts.find((p: any) => p.id === it.productId) || 
+                        DEMO_PRODUCTS.find((p: any) => p.id === it.productId);
+      const price = Number(it.sellingPrice ?? it.unitPrice ?? it.price ?? foundProd?.sellingPrice ?? 0);
       const qty = Number(it.quantity || 1);
-      const lineTotal = price * qty;
+      const lineDiscount = Number(it.lineDiscount || 0);
+      const lineTotal = Math.max(0, price * qty - lineDiscount);
       subtotal += lineTotal;
       return {
         productId: it.productId,
-        name: it.name,
+        name: it.name || foundProd?.name || 'Product',
         quantity: qty,
         unitPrice: price,
+        lineDiscount,
+        netLineTotal: lineTotal,
         subtotal: lineTotal
       };
     });
-    const orderDiscount = Number(body.orderDiscountAmount || 0);
+    const orderDiscount = Number(body.orderDiscountAmount || body.orderDiscount || 0);
     const grandTotal = Math.max(0, subtotal - orderDiscount);
 
     return createSuccessResponse(config, {
       items: validatedItems,
+      validatedItems,
       subtotal,
       orderDiscount,
+      discountAmount: orderDiscount,
       tax: 0,
       grandTotal,
       totalItems: items.length,
@@ -389,7 +397,29 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
 
   if (urlPath === 'orders' && method === 'post') {
     const items = body.items || [];
-    const grandTotal = Number(body.grandTotal || 0);
+    const allProducts = await db.products.toArray().catch(() => []);
+    let subtotal = 0;
+    const orderItems = items.map((it: any) => {
+      const foundProd = allProducts.find((p: any) => p.id === it.productId) || 
+                        DEMO_PRODUCTS.find((p: any) => p.id === it.productId);
+      const price = Number(it.sellingPrice ?? it.unitPrice ?? it.price ?? foundProd?.sellingPrice ?? 0);
+      const qty = Number(it.quantity || 1);
+      const lineDiscount = Number(it.lineDiscount || 0);
+      const lineTotal = Math.max(0, price * qty - lineDiscount);
+      subtotal += lineTotal;
+      return {
+        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        productId: it.productId,
+        name: it.name || foundProd?.name || 'Product',
+        quantity: qty,
+        unitPrice: price,
+        lineDiscount,
+        subtotal: lineTotal
+      };
+    });
+    const orderDiscount = Number(body.orderDiscountAmount || body.orderDiscount || 0);
+    const calculatedGrandTotal = Math.max(0, subtotal - orderDiscount);
+    const grandTotal = Number(body.grandTotal || calculatedGrandTotal);
     const orderNumber = `INV-${Date.now().toString().slice(-6)}`;
     const orderId = `ord-${Date.now()}`;
     const order = {
@@ -399,16 +429,12 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
       businessId: DEMO_BUSINESS.id,
       status: 'COMPLETED',
       completedAt: new Date().toISOString(),
+      subtotal,
+      discountAmount: orderDiscount,
       grandTotal,
       paymentMethod: body.paymentMethod || 'CASH',
       payments: [{ method: body.paymentMethod || 'CASH', amount: grandTotal }],
-      items: items.map((it: any) => ({
-        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        name: it.name,
-        quantity: it.quantity,
-        unitPrice: it.price || it.unitPrice,
-        subtotal: (it.price || it.unitPrice) * it.quantity
-      })),
+      items: orderItems,
       business: DEMO_BUSINESS,
       cashier: { name: 'Karthik Sivakumar' }
     };
