@@ -48,6 +48,7 @@ interface HeldBill {
   items: CartItem[];
   subtotal: number;
   discount: number;
+  discountMode?: 'AMOUNT' | 'PERCENT';
   total: number;
   totalItems: number;
 }
@@ -457,6 +458,7 @@ export const POS = () => {
       items: [...cart],
       subtotal: totals.subtotal,
       discount,
+      discountMode,
       total: totals.total,
       totalItems: totals.totalItems
     };
@@ -493,7 +495,7 @@ export const POS = () => {
 
     setCart(bill.items);
     setDiscount(bill.discount);
-    setDiscountMode('AMOUNT');
+    setDiscountMode(bill.discountMode || 'AMOUNT');
     setIsRecallModalOpen(false);
     toast.success(`Recalled ${bill.billNumber} (${bill.items.length} items)`);
   };
