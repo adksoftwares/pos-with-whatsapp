@@ -74,6 +74,14 @@ export class POSDatabase extends Dexie {
         item.nextRetryAt = null;
       });
     });
+
+    // V3 Schema - added index on serverOrderId in localOrders
+    this.version(3).stores({
+      products: 'id, businessId, barcode, sku, name, status',
+      syncQueue: 'clientTransactionId, businessId, status, nextRetryAt',
+      localOrders: 'clientTransactionId, businessId, status, completedAt, serverOrderId',
+      syncMetadata: 'businessId'
+    });
   }
 }
 

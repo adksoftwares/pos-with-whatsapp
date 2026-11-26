@@ -425,6 +425,8 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
     const grandTotal = Number(body.grandTotal || calculatedGrandTotal);
     const orderNumber = `INV-${Date.now().toString().slice(-6)}`;
     const orderId = `ord-${Date.now()}`;
+    const cachedUser = getStored<any>('cached_user', null);
+    const cashierName = cachedUser?.name || 'Cashier';
     const order = {
       id: orderId,
       orderNumber,
@@ -439,10 +441,11 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
       payments: [{ method: body.paymentMethod || 'CASH', amount: grandTotal }],
       items: orderItems,
       business: DEMO_BUSINESS,
-      cashier: { name: 'Karthik Sivakumar' }
+      cashier: { name: cashierName }
     };
 
-    // Save to localOrders Dexie
+    // Save to localOrders Dexie & localStorage cache
+    setStored('pos_latest_order', order);
     try {
       await db.localOrders.put({
         clientTransactionId: order.clientTransactionId,
@@ -473,24 +476,34 @@ export async function handleStandaloneRequest(config: AxiosRequestConfig): Promi
     const id = urlPath.split('/')[1];
     let order: any = null;
     try {
-      const local = await db.localOrders.where('serverOrderId').equals(id).first();
+      const allLocal = await db.localOrders.toArray();
+      const local = allLocal.find(l => l.serverOrderId === id || l.clientTransactionId === id || l.tempOrderNumber === id);
       if (local && local.snapshot) {
         order = local.snapshot;
       }
     } catch {}
     if (!order) {
+      const storedLatest = getStored<any>('pos_latest_order', null);
+      if (storedLatest && (storedLatest.id === id || storedLatest.clientTransactionId === id || !id || id === 'undefined')) {
+        order = storedLatest;
+      } else {
+        const allLocal = await db.localOrders.toArray().catch(() => []);
+        if (allLocal.length > 0) {
+          order = allLocal[allLocal.length - 1].snapshot;
+        }
+      }
+    }
+    if (!order) {
+      const cachedUser = getStored<any>('cached_user', null);
       order = {
         id,
         orderNumber: `INV-${Date.now().toString().slice(-6)}`,
         completedAt: new Date().toISOString(),
-        grandTotal: 1540,
-        payments: [{ method: 'CASH', amount: 1540 }],
-        items: [
-          { name: 'Elephant House Ginger Beer 400ml', quantity: 2, unitPrice: 220, subtotal: 440 },
-          { name: 'Anchor Full Cream Milk Powder 400g', quantity: 1, unitPrice: 1100, subtotal: 1100 }
-        ],
+        grandTotal: 0,
+        payments: [{ method: 'CASH', amount: 0 }],
+        items: [],
         business: DEMO_BUSINESS,
-        cashier: { name: 'Karthik Sivakumar' }
+        cashier: { name: cachedUser?.name || 'Cashier' }
       };
     }
     return createSuccessResponse(config, order);

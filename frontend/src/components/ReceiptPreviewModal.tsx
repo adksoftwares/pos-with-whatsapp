@@ -38,8 +38,17 @@ export function ReceiptPreviewModal({ isOpen, onClose, orderId }: ReceiptPreview
         } catch (e) {}
       }
       if (!data) {
-        const local = await db.localOrders.get(orderId);
-        if (local) data = local.snapshot;
+        try {
+          const allLocal = await db.localOrders.toArray().catch(() => []);
+          const match = allLocal.find((l: any) => l.serverOrderId === orderId || l.clientTransactionId === orderId || l.tempOrderNumber === orderId) || (allLocal.length > 0 ? allLocal[allLocal.length - 1] : null);
+          if (match && match.snapshot) data = match.snapshot;
+        } catch {}
+        if (!data) {
+          try {
+            const raw = localStorage.getItem('pos_latest_order');
+            if (raw) data = JSON.parse(raw);
+          } catch {}
+        }
       }
       
       if (data) {
