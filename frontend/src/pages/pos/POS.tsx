@@ -975,10 +975,10 @@ export const POS = () => {
         </section>
 
         {/* Right Side: Modern Supermarket Checkout Counter */}
-        <aside className="w-full lg:w-[350px] xl:w-[380px] 2xl:w-[420px] shrink-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden min-h-[500px]">
+        <aside className="w-full lg:w-[350px] xl:w-[380px] 2xl:w-[420px] shrink-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden h-full">
           
-          {/* Checkout Header */}
-          <div className="p-4 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between shrink-0">
+          {/* Checkout Header (Fixed) */}
+          <div className="p-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between shrink-0">
             <div>
               <h2 className="font-bold text-slate-900 text-sm">Bill Summary</h2>
               <p className="text-[11px] text-slate-400 mt-0.5">Counter 01 • Cashier: {user?.name || 'Cashier'}</p>
@@ -988,12 +988,13 @@ export const POS = () => {
             </span>
           </div>
 
-          <div className="p-4 sm:p-5 flex-1 flex flex-col gap-4 overflow-y-auto">
+          {/* Scrollable middle section if screen is compact */}
+          <div className="p-3.5 sm:p-4 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto">
             {/* Customer Walk-in Selector */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
-                  <User size={16} />
+                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                  <User size={15} />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-800">Walk-in Customer</div>
@@ -1004,7 +1005,7 @@ export const POS = () => {
             </div>
 
             {/* Subtotal & Discount Rows */}
-            <div className="space-y-2.5 text-sm">
+            <div className="space-y-2 text-xs sm:text-sm shrink-0">
               <div className="flex justify-between text-slate-600">
                 <span>Gross Subtotal</span>
                 <span className="font-bold tabular-nums text-slate-900">{formatLKR(totals.subtotal)}</span>
@@ -1040,7 +1041,7 @@ export const POS = () => {
                     value={discount || ''}
                     onChange={e => setDiscount(Math.min(discountMode === 'PERCENT' ? 100 : totals.subtotal, Math.max(0, parseFloat(e.target.value) || 0)))}
                     placeholder="0"
-                    className="w-20 text-right border border-slate-200 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-900 outline-none focus:border-blue-500"
+                    className="w-18 text-right border border-slate-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-bold text-slate-900 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -1054,20 +1055,20 @@ export const POS = () => {
             </div>
 
             {/* Flagship High-Contrast LCD Total Card */}
-            <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white p-5 shadow-inner">
-              <div className="flex justify-between items-center text-[11px] uppercase tracking-widest text-blue-200/90 font-bold">
+            <div className="rounded-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white p-3.5 sm:p-4 shadow-inner shrink-0">
+              <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-blue-200/90 font-bold">
                 <span>Total Amount Due</span>
-                <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.5 rounded-md text-[10px]">
+                <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 px-1.5 py-0.5 rounded text-[9px]">
                   Sri Lanka (LKR)
                 </span>
               </div>
-              <div className="mt-3 text-3xl 2xl:text-4xl font-black tracking-tight tabular-nums text-white">
+              <div className="mt-2 text-2xl sm:text-3xl font-black tracking-tight tabular-nums text-white">
                 {formatLKR(totals.total)}
               </div>
             </div>
 
             {/* Quick Cash Tender Calculator */}
-            <div className="border border-slate-200 rounded-xl p-3.5 space-y-3 bg-slate-50/50">
+            <div className="border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50/50 shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <label htmlFor="cash-tendered" className="text-xs font-bold text-slate-700">Cash Received</label>
                 <input
@@ -1077,17 +1078,17 @@ export const POS = () => {
                   value={cashTendered}
                   onChange={e => setCashTendered(e.target.value)}
                   placeholder={totals.total > 0 ? totals.total.toFixed(2) : "0.00"}
-                  className="w-36 border border-slate-300 rounded-lg px-3 py-1.5 text-right text-base font-black text-slate-900 outline-none focus:border-blue-600 bg-white shadow-2xs"
+                  className="w-32 sm:w-36 border border-slate-300 rounded-lg px-2.5 py-1 text-right text-sm sm:text-base font-black text-slate-900 outline-none focus:border-blue-600 bg-white shadow-2xs"
                 />
               </div>
 
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-1">
                 {['Exact', '500', '1000', '5000'].map((amount, i) => (
                   <button
                     key={amount}
                     type="button"
                     onClick={() => setCashTendered(i === 0 ? totals.total.toString() : amount)}
-                    className="py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-xs font-bold text-slate-700 transition-colors shadow-2xs"
+                    className="py-1 rounded-md border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-[11px] font-bold text-slate-700 transition-colors shadow-2xs"
                   >
                     {i === 0 ? 'Exact' : Number(amount).toLocaleString()}
                   </button>
@@ -1095,7 +1096,7 @@ export const POS = () => {
               </div>
 
               {/* Dynamic Change Indicator */}
-              <div className={`rounded-xl px-3.5 py-2.5 flex items-center justify-between border transition-all ${
+              <div className={`rounded-lg px-3 py-1.5 flex items-center justify-between border transition-all ${
                 parsedTendered >= totals.total && parsedTendered > 0
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                   : parsedTendered > 0
@@ -1105,29 +1106,29 @@ export const POS = () => {
                 <span className="text-xs font-bold">
                   {parsedTendered >= totals.total ? 'Change Due' : parsedTendered > 0 ? 'Amount Short' : 'Change'}
                 </span>
-                <strong className="text-base tabular-nums font-black">
+                <strong className="text-sm sm:text-base tabular-nums font-black">
                   {formatLKR(Math.abs(changeDue))}
                 </strong>
               </div>
             </div>
-
-            {/* Complete Sale Primary Action */}
-            <div className="mt-auto pt-2 space-y-2">
-              <Button
-                className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-base font-black shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
-                disabled={!cart.length || isCheckingOut}
-                isLoading={isCheckingOut}
-                onClick={handleCheckoutPreview}
-              >
-                <CreditCard size={20} />
-                <span>Complete Sale (F12)</span>
-              </Button>
-              <p className="text-[11px] text-center text-slate-400 font-medium">
-                Supports Cash, Card, Bank Transfer, QR & Thermal Receipt
-              </p>
-            </div>
-
           </div>
+
+          {/* ALWAYS VISIBLE PINNED BOTTOM COMPLETE SALE BAR */}
+          <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-white shadow-xs shrink-0 space-y-1.5">
+            <Button
+              className="w-full h-13 sm:h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-base font-black shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+              disabled={!cart.length || isCheckingOut}
+              isLoading={isCheckingOut}
+              onClick={handleCheckoutPreview}
+            >
+              <CreditCard size={20} />
+              <span>Complete Sale (F12)</span>
+            </Button>
+            <p className="text-[10px] text-center text-slate-400 font-medium">
+              Click or Press F12 to confirm payment & print bill
+            </p>
+          </div>
+
         </aside>
 
       </div>
