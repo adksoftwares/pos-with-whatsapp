@@ -731,10 +731,10 @@ export const POS = () => {
       )}
 
       {/* Flagship Supermarket / Retail POS Layout */}
-      <div className="h-[calc(100vh-64px)] min-h-0 w-full overflow-hidden bg-slate-100/70 p-3 sm:p-4 flex flex-col xl:flex-row gap-4 font-sans text-slate-800 antialiased">
+      <div className="h-[calc(100vh-64px)] min-h-0 w-full overflow-y-auto lg:overflow-hidden bg-slate-100/70 p-3 sm:p-4 flex flex-col lg:flex-row gap-4 font-sans text-slate-800 antialiased">
         
         {/* Left Side: Scan Bar + Invoice Ledger Table */}
-        <section className="flex-1 min-w-0 min-h-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
+        <section className="flex-1 min-w-0 min-h-[450px] lg:min-h-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
           
           {/* Top Cashier Bar: Prominent Barcode Search & Fast Action Pills */}
           <div className="p-3 sm:p-4 border-b border-slate-200/80 bg-white flex flex-col md:flex-row md:items-center gap-3 justify-between shrink-0">
@@ -975,7 +975,7 @@ export const POS = () => {
         </section>
 
         {/* Right Side: Modern Supermarket Checkout Counter */}
-        <aside className="w-full xl:w-[380px] 2xl:w-[420px] shrink-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden min-h-[500px]">
+        <aside className="w-full lg:w-[350px] xl:w-[380px] 2xl:w-[420px] shrink-0 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden min-h-[500px]">
           
           {/* Checkout Header */}
           <div className="p-4 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between shrink-0">
